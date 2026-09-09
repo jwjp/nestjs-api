@@ -12,9 +12,6 @@ import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
-  private readonly reflector = new Reflector();
-  private readonly jwtService = new JwtService();
-  private readonly configService = new ConfigService();
   private accessTokenPayload: {
     id: number;
     username: string;
@@ -22,6 +19,12 @@ export class AuthGuard implements CanActivate {
     iat: number;
     exp: number;
   };
+
+  constructor(
+    private readonly reflector: Reflector,
+    private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     // isPublic 데코레이터 확인

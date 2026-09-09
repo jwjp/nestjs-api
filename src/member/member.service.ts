@@ -161,7 +161,9 @@ export class MemberService {
       }
 
       // 권한 추가
-      await queryRunner.manager.insert(Authority, authority);
+      if (authority.length) {
+        await queryRunner.manager.insert(Authority, authority);
+      }
 
       // 트랜잭션 커밋
       await queryRunner.commitTransaction();
@@ -615,13 +617,11 @@ export class MemberService {
     const offset = memberListPageDto.perPage * (memberListPageDto.page - 1);
 
     // {limit}번째 까지
-    const limit = offset + (memberListPageDto.perPage - 1);
-
     // 멤버 리스트
     const memberList: Member[] = await this.memberRepository.find({
       withDeleted: false,
       skip: offset,
-      take: limit,
+      take: memberListPageDto.perPage,
     });
 
     // Swagger 문서 적용을 위한 DTO 생성
@@ -645,8 +645,6 @@ export class MemberService {
     const offset = memberListPageDto.perPage * (memberListPageDto.page - 1);
 
     // {limit}번째 까지
-    const limit = offset + (memberListPageDto.perPage - 1);
-
     // 멤버 리스트
     const memberList: Member[] = await this.memberRepository.find({
       where: {
@@ -654,7 +652,7 @@ export class MemberService {
       },
       withDeleted: true,
       skip: offset,
-      take: limit,
+      take: memberListPageDto.perPage,
     });
 
     // Swagger 문서 적용을 위한 DTO 생성
@@ -696,8 +694,18 @@ export class MemberService {
       });
     }
 
-    const { branchIds, menuIds } = updateMemberDto;
-    updateMemberDto.password = await bcrypt.hash(updateMemberDto.password, 10);
+    const shouldUpdateAuthority =
+      updateMemberDto.branchIds !== undefined ||
+      updateMemberDto.menuIds !== undefined;
+    const branchIds = updateMemberDto.branchIds ?? [];
+    const menuIds = updateMemberDto.menuIds ?? [];
+
+    if (updateMemberDto.password) {
+      updateMemberDto.password = await bcrypt.hash(
+        updateMemberDto.password,
+        10,
+      );
+    }
 
     // 업데이트 엔티티에 포함되지 않는 객체 삭제
     delete updateMemberDto.branchIds;
@@ -710,77 +718,84 @@ export class MemberService {
     await queryRunner.startTransaction();
 
     try {
-      // 권한 배열 생성 (데이터 검증 및 insert 배열)
-      const authority: AuthorityDto[] = [];
+      if (shouldUpdateAuthority) {
+        // 권한 배열 생성 (데이터 검증 및 insert 배열)
+        const authority: AuthorityDto[] = [];
 
-      // 지점은 있는데 메뉴가 없거나, 메뉴는 있는데 지점이 없는 경우
-      if (
-        (branchIds.length && !menuIds.length) ||
-        (!branchIds.length && menuIds.length)
-      ) {
-        throw new BadRequestException({
-          message: '지점과 메뉴를 1개 이상 선택해주세요.',
-        });
-      }
-
-      // 권한 배열 데이터 추가
-      for (const i in branchIds) {
-        for (const j in menuIds) {
-          // 데이터 검증 및 insert 배열
-          authority.push({
-            branchId: branchIds[i],
-            menuId: menuIds[j],
-            memberId: member.id,
-          });
-        }
-      }
-
-      // 권한 배열 데이터 검증을 위한 인스턴스화
-      const authorityInstance = plainToInstance(AuthorityDto, authority, {
-        excludeExtraneousValues: true,
-      });
-
-      // 권한 배열 데이터 검증
-      for (const auth of authorityInstance) {
-        const { constraints } = (await validate(auth)).pop() || {};
-        if (constraints) {
+        // 지점은 있는데 메뉴가 없거나, 메뉴는 있는데 지점이 없는 경우
+        if (
+          (branchIds.length && !menuIds.length) ||
+          (!branchIds.length && menuIds.length)
+        ) {
           throw new BadRequestException({
-            message: Object.values(constraints),
+            message: '지점과 메뉴를 1개 이상 선택해주세요.',
           });
         }
-      }
 
-      // 삭제되지 않은 지점 수
-      const branchIdCount: number = await queryRunner.manager.countBy(Branch, {
-        id: In(branchIds),
-      });
+        // 권한 배열 데이터 추가
+        for (const i in branchIds) {
+          for (const j in menuIds) {
+            // 데이터 검증 및 insert 배열
+            authority.push({
+              branchId: branchIds[i],
+              menuId: menuIds[j],
+              memberId: member.id,
+            });
+          }
+        }
 
-      // 삭제되었거나 존재하지 않는 지점 ID 값이 있다면 예외처리
-      if (branchIdCount !== branchIds.length) {
-        throw new BadRequestException({
-          message: '삭제되었거나 존재하지 않는 지점을 선택하였습니다.',
+        // 권한 배열 데이터 검증을 위한 인스턴스화
+        const authorityInstance = plainToInstance(AuthorityDto, authority, {
+          excludeExtraneousValues: true,
         });
-      }
 
-      // 삭제되지 않은 메뉴 수
-      const menuIdCount: number = await queryRunner.manager.countBy(Menu, {
-        id: In(menuIds),
-      });
+        // 권한 배열 데이터 검증
+        for (const auth of authorityInstance) {
+          const { constraints } = (await validate(auth)).pop() || {};
+          if (constraints) {
+            throw new BadRequestException({
+              message: Object.values(constraints),
+            });
+          }
+        }
 
-      // 삭제되었거나 존재하지 않는 지점 ID 값이 있다면 예외처리
-      if (menuIdCount !== menuIds.length) {
-        throw new BadRequestException({
-          message: '삭제되었거나 존재하지 않는 메뉴를 선택하였습니다.',
+        // 삭제되지 않은 지점 수
+        const branchIdCount: number = await queryRunner.manager.countBy(
+          Branch,
+          {
+            id: In(branchIds),
+          },
+        );
+
+        // 삭제되었거나 존재하지 않는 지점 ID 값이 있다면 예외처리
+        if (branchIdCount !== branchIds.length) {
+          throw new BadRequestException({
+            message: '삭제되었거나 존재하지 않는 지점을 선택하였습니다.',
+          });
+        }
+
+        // 삭제되지 않은 메뉴 수
+        const menuIdCount: number = await queryRunner.manager.countBy(Menu, {
+          id: In(menuIds),
         });
+
+        // 삭제되었거나 존재하지 않는 지점 ID 값이 있다면 예외처리
+        if (menuIdCount !== menuIds.length) {
+          throw new BadRequestException({
+            message: '삭제되었거나 존재하지 않는 메뉴를 선택하였습니다.',
+          });
+        }
+
+        // 기존 권한 삭제
+        await queryRunner.manager.delete(Authority, {
+          memberId: member.id,
+        });
+
+        // 신규 권한 추가
+        if (authority.length) {
+          await queryRunner.manager.insert(Authority, authority);
+        }
       }
-
-      // 기존 권한 삭제
-      await queryRunner.manager.delete(Authority, {
-        memberId: member.id,
-      });
-
-      // 신규 권한 추가
-      await queryRunner.manager.insert(Authority, authority);
 
       // deny 상태가 아니고 && 이메일을 변경하는 경우
       if (
@@ -872,7 +887,7 @@ export class MemberService {
     }
 
     // 멤버 정보 수정 실패
-    if (validationUpdateResult.affected === 0) {
+    if (validationUpdateResult?.affected === 0) {
       throw new ServiceUnavailableException({
         message: '멤버 정보 수정에 실패했습니다.',
       });
@@ -886,7 +901,7 @@ export class MemberService {
     // 알림이 필요한 경우 사용
     if (result.affected > 0) {
       // JWT 토큰 타입과 코드 분리
-      const [type, token] = authorization.split(' ') ?? [];
+      const [type, token] = authorization?.split(' ') ?? [];
       const jwtToken = type === 'Bearer' ? token : undefined;
 
       // 서비스 요청한 멤버 정보(토큰 값 사용)
@@ -962,7 +977,7 @@ export class MemberService {
     }
 
     // 멤버 정보 수정 실패
-    if (validationUpdateResult.affected === 0) {
+    if (validationUpdateResult?.affected === 0) {
       throw new ServiceUnavailableException({
         message: '멤버 정보 수정에 실패했습니다.',
       });

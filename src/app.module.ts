@@ -14,6 +14,9 @@ import { ProxyThrottlerGuard } from './common/auth/proxy-throttler.guard';
 import { HttpCacheInterceptor } from './common/auth/http-cache.interceptor';
 import { CacheModule } from '@nestjs/cache-manager';
 import { FileModule } from './common/file/file.module';
+import { JwtModule } from '@nestjs/jwt';
+import { AuthGuard } from './common/auth/auth.guard';
+import { AuthInterceptor } from './common/auth/auth.interceptor';
 
 @Module({
   imports: [
@@ -96,6 +99,7 @@ import { FileModule } from './common/file/file.module';
     }),
     ThrottlerModule.forRoot([{ ttl: 10000, limit: 10 }]),
     CacheModule.register({ ttl: 2000, max: 10 }),
+    JwtModule.register({}),
     ServeStaticModule.forRoot({
       rootPath: 'files',
       serveRoot: '',
@@ -111,6 +115,14 @@ import { FileModule } from './common/file/file.module';
     {
       provide: APP_GUARD,
       useClass: ProxyThrottlerGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: AuthGuard,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: AuthInterceptor,
     },
     {
       provide: APP_INTERCEPTOR,

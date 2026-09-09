@@ -5,8 +5,6 @@ import { utilities as WinstonUtilities, WinstonModule } from 'nest-winston';
 import * as winston from 'winston';
 import * as basicAuth from 'express-basic-auth';
 import { globalMiddleware } from './common/auth/auth.middleware';
-import { AuthGuard } from './common/auth/auth.guard';
-import { AuthInterceptor } from './common/auth/auth.interceptor';
 import { AuthFilter } from './common/auth/auth.filter';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as cookieParser from 'cookie-parser';
@@ -116,11 +114,7 @@ async function bootstrap() {
   app.use(globalMiddleware);
 
   // 2. 가드 (권한 인증)
-  app.useGlobalGuards(new AuthGuard());
-
   // 3. 인터셉터 (요청 전/후 데이터 수정)
-  app.useGlobalInterceptors(new AuthInterceptor());
-
   // 4. 파이프 (값 검증)
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
 
