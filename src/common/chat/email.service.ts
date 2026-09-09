@@ -41,8 +41,8 @@ export class EmailService {
       return {
         accepted: result.accepted, // 발송 성공
         rejected: result.rejected, // 발송 실패
-        messageTile: result.messageTime, // 발송 시간
-        messageSize: result.messageSize, // 메시지 사이즈
+        messageTile: result.messageTime as number, // 발송 시간
+        messageSize: result.messageSize as number, // 메시지 사이즈
         response: result.response, // 발송 결과 메시지
       };
     } catch (err) {

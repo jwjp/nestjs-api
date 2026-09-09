@@ -23,64 +23,73 @@ import { AuthInterceptor } from './common/auth/auth.interceptor';
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: `envs/.${process.env.NODE_ENV}.env`,
-      validationSchema: Joi.object({
-        // 운영 환경 (노드 환경 변수)
-        NODE_ENV: Joi.string()
-          .valid('local', 'dev', 'prod')
-          .default('dev')
-          .required(),
-        // 타임존 (노드 환경 변수)
-        TZ: Joi.string()
-          .valid('Asia/Seoul', 'Asia/Hong_Kong', 'Asia/Tokyo', 'UTC')
-          .default('Asia/Seoul')
-          .required(),
+      validate: (config: Record<string, unknown>) => {
+        const schema = Joi.object({
+          // 운영 환경 (노드 환경 변수)
+          NODE_ENV: Joi.string()
+            .valid('local', 'dev', 'prod')
+            .default('dev')
+            .required(),
+          // 타임존 (노드 환경 변수)
+          TZ: Joi.string()
+            .valid('Asia/Seoul', 'Asia/Hong_Kong', 'Asia/Tokyo', 'UTC')
+            .default('Asia/Seoul')
+            .required(),
 
-        // 루트 폴더명
-        ROOT_DIRECTORY: Joi.string().required(),
+          // 루트 폴더명
+          ROOT_DIRECTORY: Joi.string().required(),
 
-        // 데이터베이스
-        DB_HOST: Joi.string().required(),
-        DB_PORT: Joi.number().required(),
-        DB_SCHEMA: Joi.string().required(),
-        DB_USERNAME: Joi.string().required(),
-        DB_PASSWORD: Joi.string().required(),
-        DB_ENTITIES: Joi.string().required(),
-        DB_CHARSET: Joi.string().required(),
+          // 데이터베이스
+          DB_HOST: Joi.string().required(),
+          DB_PORT: Joi.number().required(),
+          DB_SCHEMA: Joi.string().required(),
+          DB_USERNAME: Joi.string().required(),
+          DB_PASSWORD: Joi.string().required(),
+          DB_ENTITIES: Joi.string().required(),
+          DB_CHARSET: Joi.string().required(),
 
-        // JSON Web Token
-        JWT_ACCESS_SECRET_KEY: Joi.string().required(),
-        JWT_ACCESS_EXPIRES_TIME: Joi.string().required(),
-        JWT_REFRESH_SECRET_KEY: Joi.string().required(),
-        JWT_REFRESH_EXPIRES_TIME: Joi.string().required(),
-        JWT_EMAIL_VALIDATION_SECRET_KEY: Joi.string().required(),
-        JWT_EMAIL_VALIDATION_EXPIRES_TIME: Joi.string().required(),
+          // JSON Web Token
+          JWT_ACCESS_SECRET_KEY: Joi.string().required(),
+          JWT_ACCESS_EXPIRES_TIME: Joi.string().required(),
+          JWT_REFRESH_SECRET_KEY: Joi.string().required(),
+          JWT_REFRESH_EXPIRES_TIME: Joi.string().required(),
+          JWT_EMAIL_VALIDATION_SECRET_KEY: Joi.string().required(),
+          JWT_EMAIL_VALIDATION_EXPIRES_TIME: Joi.string().required(),
 
-        // 슬랙
-        SLACK_CHANNEL: Joi.string().required(),
-        SLACK_TOKEN: Joi.string().required(),
-        SLACK_WEBHOOK: Joi.string().required(),
+          // 슬랙
+          SLACK_CHANNEL: Joi.string().required(),
+          SLACK_TOKEN: Joi.string().required(),
+          SLACK_WEBHOOK: Joi.string().required(),
 
-        // 이메일 발송 계정
-        EMAIL_USERNAME: Joi.string().email().required(),
-        EMAIL_PASSWORD: Joi.string().required(),
+          // 이메일 발송 계정
+          EMAIL_USERNAME: Joi.string().email().required(),
+          EMAIL_PASSWORD: Joi.string().required(),
 
-        // 파일 업로드 경로
-        UPLOAD_DISK_PATH: Joi.string().required(),
-        UPLOAD_S3_PATH: Joi.string().required(),
+          // 파일 업로드 경로
+          UPLOAD_DISK_PATH: Joi.string().required(),
+          UPLOAD_S3_PATH: Joi.string().required(),
 
-        // Amazon Web Services
-        AWS_ACCESS_KEY: Joi.string().required(),
-        AWS_SECRET_ACCESS_KEY: Joi.string().required(),
-        AWS_S3_BUCKET: Joi.string().required(),
-        AWS_S3_REGION: Joi.string().required(),
+          // Amazon Web Services
+          AWS_ACCESS_KEY: Joi.string().required(),
+          AWS_SECRET_ACCESS_KEY: Joi.string().required(),
+          AWS_S3_BUCKET: Joi.string().required(),
+          AWS_S3_REGION: Joi.string().required(),
 
-        // OpenAPI(Swagger) 문서 접속 계정
-        SWAGGER_USERNAME: Joi.string().required(),
-        SWAGGER_PASSWORD: Joi.string().required(),
-      }),
-      validationOptions: {
-        // allowUnknown: false,
-        abortEarly: true,
+          // OpenAPI(Swagger) 문서 접속 계정
+          SWAGGER_USERNAME: Joi.string().required(),
+          SWAGGER_PASSWORD: Joi.string().required(),
+        });
+
+        const { error, value } = schema.validate(config, {
+          allowUnknown: true,
+          abortEarly: true,
+        });
+
+        if (error) {
+          throw error;
+        }
+
+        return value;
       },
     }),
     TypeOrmModule.forRoot({
