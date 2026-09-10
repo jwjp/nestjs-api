@@ -7,11 +7,12 @@ import {
   IsOptional,
   IsString,
   IsUrl,
-  IsUUID, Max, Min,
+  Max,
+  Min,
 } from 'class-validator';
-import { ApiProperty, OmitType, PartialType } from '@nestjs/swagger';
+import { ApiProperty, PartialType } from '@nestjs/swagger';
 import { ResponseDto } from '../../auth/response.dto';
-import { Expose, Type } from 'class-transformer';
+import { Type } from 'class-transformer';
 import { FileStorageEnum } from '../file.enum';
 import { File } from '../entities/file.entity';
 

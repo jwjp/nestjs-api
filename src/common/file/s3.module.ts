@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Module,
   ServiceUnavailableException,
   UnsupportedMediaTypeException,

@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, Param, Query } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import {
   DeleteObjectCommand,
   DeleteObjectsCommand,
@@ -13,9 +13,11 @@ import { ConfigService } from '@nestjs/config';
 import { PutObjectCommandInput } from '@aws-sdk/client-s3/dist-types/commands/PutObjectCommand';
 import path, { extname } from 'path';
 import {
-  FileInsertDto, FileListResponseDto,
-  GetS3FileByBranchId, GetS3FileByFileId,
-  GetS3FileByMaxKeys, S3FileListPageDto,
+  FileInsertDto,
+  FileListResponseDto,
+  GetS3FileByBranchId,
+  GetS3FileByFileId,
+  S3FileListPageDto,
   UploadS3FilesDto,
   UploadS3FilesResponse,
   UploadS3ResultDto,
@@ -24,7 +26,7 @@ import { BranchService } from '../../member/branch.service';
 import { randomUUID } from 'crypto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { File } from './entities/file.entity';
-import { IsNull, Not, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { FileStorageEnum } from './file.enum';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
@@ -222,7 +224,6 @@ export class FileService {
     filename: string,
     prefix: string,
     versionId: string | undefined = undefined,
-    download = {},
   ) {
     const { $metadata, LastModified, ContentLength, VersionId, ContentType } =
       await this.s3Client.send(

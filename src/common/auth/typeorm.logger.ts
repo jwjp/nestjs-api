@@ -1,4 +1,4 @@
-import { AbstractLogger, LogLevel, LogMessage, QueryRunner } from 'typeorm';
+import { AbstractLogger, LogLevel, LogMessage } from 'typeorm';
 import { LoggerOptions } from 'typeorm/logger/LoggerOptions';
 import { Logger } from '@nestjs/common';
 
@@ -21,11 +21,7 @@ export class TypeOrmLogger extends AbstractLogger {
    */
   private readonly logger = new Logger();
 
-  protected writeLog(
-    level: LogLevel,
-    logMessage: LogMessage | LogMessage[],
-    queryRunner?: QueryRunner,
-  ) {
+  protected writeLog(level: LogLevel, logMessage: LogMessage | LogMessage[]) {
     const messages = this.prepareLogMessages(logMessage, {
       highlightSql: false,
     });

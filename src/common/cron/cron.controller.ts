@@ -1,7 +1,7 @@
 import { Controller, Get, Inject, Logger, LoggerService } from '@nestjs/common';
 import { Public } from '../auth/auth.decorator';
 import { CronService } from './cron.service';
-import { Cron, Interval, Timeout } from '@nestjs/schedule';
+import { Cron } from '@nestjs/schedule';
 import { HealthCheck } from '@nestjs/terminus';
 import { HealthCheckService } from './health-check.service';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
