@@ -206,7 +206,7 @@ export class MemberService {
   ): Promise<SendValidationResponseDto> {
     // 멤버 검색
     const member: Member = await this.memberRepository.findOne({
-      select: ['id'],
+      select: { id: true },
       where: {
         email: sendValidationDto.email,
         username: sendValidationDto.username,
@@ -297,7 +297,7 @@ export class MemberService {
   async login(loginDto: LoginDto): Promise<LoginResponseDto> {
     // 멤버 검색
     const member: Member = await this.memberRepository.findOne({
-      select: ['id', 'username', 'role', 'password'],
+      select: { id: true, username: true, role: true, password: true },
       where: { loginId: loginDto.loginId },
       withDeleted: false,
     });
@@ -366,7 +366,7 @@ export class MemberService {
   ): Promise<MemberRefreshResponseDto> {
     // 멤버 검색
     const member = await this.memberRepository.findOne({
-      select: ['id', 'username', 'role', 'refreshToken'],
+      select: { id: true, username: true, role: true, refreshToken: true },
       where: {
         id: memberRefreshDto.id,
       },
@@ -507,7 +507,7 @@ export class MemberService {
       },
       where: { id: memberIdDto.id },
       // 메뉴 및 지점 권한 정보
-      relations: ['authority', 'authority.menu', 'authority.branch'],
+      relations: { authority: { menu: true, branch: true } },
       withDeleted: true,
     });
 

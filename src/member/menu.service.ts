@@ -218,7 +218,7 @@ export class MenuService {
           branchId: menuListByAuthorityDto.branchId,
         },
       },
-      relations: ['authority'],
+      relations: { authority: true },
       order: {
         seq: 'asc',
       },

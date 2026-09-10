@@ -240,7 +240,7 @@ export class BranchService {
           memberId: branchListByAuthorityDto.memberId,
         },
       },
-      relations: ['authority'],
+      relations: { authority: true },
       order: {
         seq: 'asc',
       },
