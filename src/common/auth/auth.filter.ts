@@ -21,10 +21,10 @@ export class AuthFilter implements ExceptionFilter {
     const { httpAdapter } = this.httpAdapterHost;
     const ctx = host.switchToHttp();
 
-    // 예외 또는 에러명
+    // Exception or error name
     const exceptionName = exception['response']?.name ?? exception['name'];
 
-    // 에러 메시지는 /node_modules/jsonwebtoken/verify.js 참고
+    // See /node_modules/jsonwebtoken/verify.js for these error messages
     const jwtMessage: object = {
       'jwt expired': 'jwt 토큰이 만료되었습니다.',
       'invalid token': '유효하지 않은 jwt 토큰입니다.',
@@ -33,7 +33,7 @@ export class AuthFilter implements ExceptionFilter {
       'invalid signature': 'jwt 토큰의 서명이 유효하지 않습니다.',
     };
 
-    // 예외 또는 에러 메시지
+    // Exception or error message
     const message =
       exception instanceof QueryFailedError
         ? `SQLSTATE[${exception['sqlState'] ?? exception['syscall']}] ${
@@ -46,7 +46,7 @@ export class AuthFilter implements ExceptionFilter {
             : exception['response']?.message ??
               exception['message'].replace('Exception', '').trim();
 
-    // 사용자에게 보낼 응답 데이터
+    // Response payload to send to the client
     const responseBody: ResponseDto = {
       result: false,
       statusCode:
@@ -60,7 +60,7 @@ export class AuthFilter implements ExceptionFilter {
       message: { error: message },
     };
 
-    // 개발자가 확인 할 로그 데이터
+    // Log data for developers to inspect
     const debuggingLog = Object.assign({}, responseBody, {
       query: exception['sql'] ?? undefined,
       stack: exception['response']?.stack ?? exception['stack'],
@@ -70,10 +70,10 @@ export class AuthFilter implements ExceptionFilter {
         : responseBody.message['error'],
     });
 
-    // 로그 기록
+    // Write the log
     this.logger.error(debuggingLog, debuggingLog.stack, exceptionName);
 
-    // 에러 응답
+    // Send the error response
     httpAdapter.reply(ctx.getResponse(), responseBody, responseBody.statusCode);
   }
 }

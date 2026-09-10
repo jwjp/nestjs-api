@@ -32,9 +32,9 @@ export class HealthCheckService {
         () =>
           this.disk.checkStorage('storage', {
             path: '/',
-            thresholdPercent: 0.9, // 저장공간 90% 할당 된 경우 알림
+            thresholdPercent: 0.9, // Alert when 90% of storage is allocated
           }),
-        () => this.memory.checkRSS('memory', 4 * 1024 * 1024 * 1024), // 메모리 사용량 4GB 초과 시 알림
+        () => this.memory.checkRSS('memory', 4 * 1024 * 1024 * 1024), // Alert when memory usage exceeds 4GB
       ]);
 
       return 'OK';
@@ -46,7 +46,7 @@ export class HealthCheckService {
       const stack = err.stack;
       const data = JSON.stringify(err.response?.error);
 
-      // 슬랙 메시지 발송
+      // Send a Slack message
       await this.slackService.sendSlack(
         this.configService.get<string>('SLACK_WEBHOOK'),
         this.configService.get<string>('SLACK_CHANNEL'),
@@ -54,7 +54,7 @@ export class HealthCheckService {
         this.configService.get<string>('SLACK_TOKEN'),
       );
 
-      // 객체 생성 후 undefined 객체 제거
+      // Remove undefined entries after building the object
       const errMessage: object = JSON.parse(
         JSON.stringify({
           http: err.response?.error?.http

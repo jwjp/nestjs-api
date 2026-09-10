@@ -30,7 +30,7 @@ import { MimeType } from './allowed-mime.array';
           bucket: configService.get<string>('AWS_S3_BUCKET'),
           contentType: multerS3.AUTO_CONTENT_TYPE,
           key(req, file, callback) {
-            // TODO: multer-s3 호환성 및 사용성 재검토
+            // TODO: revisit multer-s3 compatibility and usability
             const nowDate = new Date();
             const nowDestination =
               nowDate.getFullYear() +
@@ -48,7 +48,7 @@ import { MimeType } from './allowed-mime.array';
               randomUUID() +
               extname(file.originalname);
 
-            // 업로드하는 파일명 길이 확인 (최대 255)
+            // Check the uploaded filename length (max 255)
             if (filename.length > 255) {
               return callback(
                 new ServiceUnavailableException('Too long upload filename'),
@@ -60,7 +60,7 @@ import { MimeType } from './allowed-mime.array';
           },
         }),
         fileFilter: (req, file, callback) => {
-          // 업로드 지원하는 파일 타입 확인
+          // Check whether the file type is supported for upload
           if (!MimeType.includes(file.mimetype)) {
             return callback(
               new UnsupportedMediaTypeException('File type not allowed'),
@@ -68,7 +68,7 @@ import { MimeType } from './allowed-mime.array';
             );
           }
 
-          // 업로드하는 파일명 길이 확인 (최대 255)
+          // Check the uploaded filename length (max 255)
           if (file.originalname.length > 255) {
             return callback(
               new ServiceUnavailableException('Too long original filename'),

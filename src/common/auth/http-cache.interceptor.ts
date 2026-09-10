@@ -7,11 +7,11 @@ export class HttpCacheInterceptor extends CacheInterceptor {
     const request = context.switchToHttp().getRequest();
     const { httpAdapter } = this.httpAdapterHost;
 
-    // GET 엔드포인트만 캐싱 가능
+    // Only GET endpoints can be cached
     const isGetRequest: boolean =
       httpAdapter.getRequestMethod(request) === 'GET';
     const excludePaths: string[] = [
-      // 캐싱 예외 경로
+      // Paths excluded from caching
       '/',
     ];
     if (

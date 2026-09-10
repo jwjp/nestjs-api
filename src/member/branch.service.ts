@@ -21,10 +21,10 @@ export class BranchService {
   ) {}
 
   /**
-   * 지점 생성
+   * Create a branch
    *
-   * @param {CreateBranchDto} createBranchDto - 지점 생성에 필요한 데이터
-   * @return {Promise<CreateBranchResponseDto>} - 생성한 지점 정보
+   * @param {CreateBranchDto} createBranchDto - Data required to create a branch
+   * @return {Promise<CreateBranchResponseDto>} - The created branch info
    */
   async createBranch(
     createBranchDto: CreateBranchDto,
@@ -32,7 +32,7 @@ export class BranchService {
     const branch: CreateBranchDto & Branch =
       await this.branchRepository.save(createBranchDto);
 
-    // Swagger 문서 적용을 위한 DTO 생성
+    // Build the DTO used for the Swagger docs
     const createBranchResponseDto: CreateBranchResponseDto =
       new CreateBranchResponseDto();
     createBranchResponseDto.message = branch;
@@ -41,7 +41,7 @@ export class BranchService {
   }
 
   /**
-   * ID 키 값을 이용한 지점 존재유무 검색
+   * Check whether a branch exists by ID key
    *
    * @param {BranchIdDto} branchIdDto
    * @return {Promise<boolean>}
@@ -56,7 +56,7 @@ export class BranchService {
   }
 
   /**
-   * 지점 (삭제 제외)
+   * Branches (excluding deleted)
    *
    * @return {Promise<GetBranchResponseDto>}
    */
@@ -66,7 +66,7 @@ export class BranchService {
       withDeleted: false,
     });
 
-    // Swagger 문서 적용을 위한 DTO 생성
+    // Build the DTO used for the Swagger docs
     const getBranchResponseDto: GetBranchResponseDto =
       new GetBranchResponseDto();
     getBranchResponseDto.message = branch;
@@ -75,7 +75,7 @@ export class BranchService {
   }
 
   /**
-   * 삭제 지점
+   * Deleted branches
    *
    * @return {Promise<GetBranchResponseDto>}
    */
@@ -88,7 +88,7 @@ export class BranchService {
       withDeleted: true,
     });
 
-    // Swagger 문서 적용을 위한 DTO 생성
+    // Build the DTO used for the Swagger docs
     const getBranchResponseDto: GetBranchResponseDto =
       new GetBranchResponseDto();
     getBranchResponseDto.message = branch;
@@ -97,42 +97,42 @@ export class BranchService {
   }
 
   /**
-   * ID 키 값을 이용한 지점 업데이트
+   * Update a branch by ID key
    *
-   * @param {BranchIdDto} branchIdDto - 지점 ID 키 값
-   * @param {UpdateBranchDto} updateBranchDto - 업데이트에 필요한 데이터
-   * @return {Promise<UpdateBranchResponseDto>} - 업데이트 결과
+   * @param {BranchIdDto} branchIdDto - Branch ID key
+   * @param {UpdateBranchDto} updateBranchDto - Data required for the update
+   * @return {Promise<UpdateBranchResponseDto>} - Update result
    */
   async updateBranchById(
     branchIdDto: BranchIdDto,
     updateBranchDto: UpdateBranchDto,
   ): Promise<UpdateBranchResponseDto> {
-    // 업데이트 데이터가 넘어오지 않으면 예외처리
+    // Throw an error if no update data was provided
     if (Object.keys(updateBranchDto).length === 0) {
       throw new BadRequestException({
         message: '요청 데이터가 없습니다.',
       });
     }
 
-    // 지점 검색
+    // Look up the branch
     const branch: Branch = await this.branchRepository.findOneBy({
       id: branchIdDto.id,
     });
 
-    // 지점이 없는 경우 예외처리
+    // Throw an error if the branch does not exist
     if (branch === null) {
       throw new BadRequestException({
         message: '지점이 존재하지 않습니다.',
       });
     }
 
-    // ID 키 값을 이용한 업데이트
+    // Update by ID key
     const result: UpdateResult = await this.branchRepository.update(
       { id: branchIdDto.id },
       { ...updateBranchDto },
     );
 
-    // Swagger 문서 적용을 위한 DTO 생성
+    // Build the DTO used for the Swagger docs
     const updateBranchResponseDto: UpdateBranchResponseDto =
       new UpdateBranchResponseDto();
     updateBranchResponseDto.message = { affectedRows: result.affected };
@@ -141,33 +141,33 @@ export class BranchService {
   }
 
   /**
-   * ID 키 값을 이용한 지점 정보 삭제<br/>
-   * deletedAt 값만 업데이트
+   * Delete a branch by ID key<br/>
+   * Only updates the deletedAt value
    *
-   * @param {BranchIdDto} branchIdDto - 지점 ID 키 값
-   * @return {Promise<UpdateBranchResponseDto>} - 삭제 결과
+   * @param {BranchIdDto} branchIdDto - Branch ID key
+   * @return {Promise<UpdateBranchResponseDto>} - Delete result
    */
   async removeBranchById(
     branchIdDto: BranchIdDto,
   ): Promise<UpdateBranchResponseDto> {
-    // 지점 검색
+    // Look up the branch
     const branch: Branch = await this.branchRepository.findOneBy({
       id: branchIdDto.id,
     });
 
-    // 지점이 없는 경우 예외처리
+    // Throw an error if the branch does not exist
     if (branch === null) {
       throw new BadRequestException({
         message: '지점이 존재하지 않습니다.',
       });
     }
 
-    // ID 키 값을 이용한 지점 삭제
+    // Delete the branch by ID key
     const result: UpdateResult = await this.branchRepository.softDelete(
       branchIdDto.id,
     );
 
-    // Swagger 문서 적용을 위한 DTO 생성
+    // Build the DTO used for the Swagger docs
     const updateBranchResponseDto: UpdateBranchResponseDto =
       new UpdateBranchResponseDto();
     updateBranchResponseDto.message = { affectedRows: result.affected };
@@ -176,16 +176,16 @@ export class BranchService {
   }
 
   /**
-   * 삭제 지점 복구<br/>
-   * deletedAt 값을 null 값으로 업데이트
+   * Restore a deleted branch<br/>
+   * Updates deletedAt back to null
    *
-   * @param {BranchIdDto} branchIdDto - 지점 ID 키 값
+   * @param {BranchIdDto} branchIdDto - Branch ID key
    * @return {Promise<UpdateBranchResponseDto>}
    */
   async restoreBranchById(
     branchIdDto: BranchIdDto,
   ): Promise<UpdateBranchResponseDto> {
-    // 삭제 된 지점 검색
+    // Look up the deleted branch
     const branch: Branch = await this.branchRepository.findOne({
       where: {
         id: branchIdDto.id,
@@ -194,19 +194,19 @@ export class BranchService {
       withDeleted: true,
     });
 
-    // 지점이 없는 경우 예외처리
+    // Throw an error if the branch does not exist
     if (branch === null) {
       throw new BadRequestException({
         message: '지점이 존재하지 않습니다.',
       });
     }
 
-    // 삭제 된 지점 복구
+    // Restore the deleted branch
     const result: UpdateResult = await this.branchRepository.restore({
       id: branchIdDto.id,
     });
 
-    // Swagger 문서 적용을 위한 DTO 생성
+    // Build the DTO used for the Swagger docs
     const updateBranchResponseDto: UpdateBranchResponseDto =
       new UpdateBranchResponseDto();
     updateBranchResponseDto.message = { affectedRows: result.affected };
@@ -215,15 +215,15 @@ export class BranchService {
   }
 
   /**
-   * 해당 멤버의 지점 권한
+   * Branch authority for the given member
    *
-   * @param {BranchListByAuthorityDto} branchListByAuthorityDto - 멤버의 권한 지점을 가져오는 데 필요한 데이터
+   * @param {BranchListByAuthorityDto} branchListByAuthorityDto - Data required to fetch a member's authorized branches
    * @return {Promise<BranchListResponseDto>}
    */
   async getBranchListByAuthority(
     branchListByAuthorityDto: BranchListByAuthorityDto,
   ): Promise<BranchListResponseDto> {
-    // 권한 있는 지점 리스트
+    // List of branches the member has authority over
     const branch: Branch[] = await this.branchRepository.find({
       select: {
         id: true,
@@ -246,12 +246,12 @@ export class BranchService {
       },
     });
 
-    // 불필요한 객체 삭제
+    // Remove fields we don't want to keep around
     branch.filter((item: Branch) => {
       return delete item?.deletedAt;
     });
 
-    // Swagger 문서 적용을 위한 DTO 생성
+    // Build the DTO used for the Swagger docs
     const branchListResponseDto: BranchListResponseDto =
       new BranchListResponseDto();
     branchListResponseDto.message = branch;

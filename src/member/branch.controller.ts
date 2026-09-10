@@ -29,12 +29,12 @@ import { ResponseDto, ResponseErrorDto } from '../common/auth/response.dto';
   status: '4XX',
   type: ResponseErrorDto,
   description:
-    '4XX 및 5XX 에러 메시지는 message.error 객체로 확인<br/>민감한 에러 메시지는 상세하게 기술하지 않음',
+    '4XX and 5XX error messages can be found in the message.error object<br/>Sensitive error messages are not described in detail',
 })
 @ApiResponse({
   status: '2XX',
   type: ResponseDto,
-  description: '2XX Response 값은 message 객체에서 확인',
+  description: '2XX response values can be found in the message object',
 })
 @Roles('admin')
 @Controller('branch')
@@ -42,12 +42,12 @@ export class BranchController {
   constructor(private readonly branchService: BranchService) {}
 
   /**
-   * 지점 생성
+   * Create a branch
    *
-   * @param {CreateBranchDto} createBranchDto - 지점 생성에 필요한 데이터
-   * @return {Promise<CreateBranchResponseDto>} - 생성한 지점 정보
+   * @param {CreateBranchDto} createBranchDto - Data required to create a branch
+   * @return {Promise<CreateBranchResponseDto>} - The created branch info
    */
-  @ApiOperation({ summary: '지점 생성' })
+  @ApiOperation({ summary: 'Create a branch' })
   @Post()
   createbranch(
     @Body() createBranchDto: CreateBranchDto,
@@ -56,35 +56,35 @@ export class BranchController {
   }
 
   /**
-   * 지점 (삭제 제외)
+   * Branches (excluding deleted)
    *
    * @return {Promise<GetBranchResponseDto>}
    */
-  @ApiOperation({ summary: '지점 (삭제 제외)' })
+  @ApiOperation({ summary: 'Branches (excluding deleted)' })
   @Get()
   getBranchNotDeleted(): Promise<GetBranchResponseDto> {
     return this.branchService.getBranchNotDeleted();
   }
 
   /**
-   * 삭제 지점
+   * Deleted branches
    *
    * @return {Promise<GetBranchResponseDto>}
    */
-  @ApiOperation({ summary: '삭제 지점' })
+  @ApiOperation({ summary: 'Deleted branches' })
   @Get('/deleted')
   getBranchDeleted(): Promise<GetBranchResponseDto> {
     return this.branchService.getBranchDeleted();
   }
 
   /**
-   * ID 키 값을 이용한 지점 업데이트
+   * Update a branch by ID key
    *
-   * @param {BranchIdDto} branchIdDto - 지점 ID 키 값
-   * @param {UpdateBranchDto} updateBranchDto - 업데이트에 필요한 데이터
-   * @return {Promise<UpdateBranchResponseDto>} - 업데이트 결과
+   * @param {BranchIdDto} branchIdDto - Branch ID key
+   * @param {UpdateBranchDto} updateBranchDto - Data required for the update
+   * @return {Promise<UpdateBranchResponseDto>} - Update result
    */
-  @ApiOperation({ summary: '지점 업데이트' })
+  @ApiOperation({ summary: 'Update branch' })
   @Patch(':id')
   updateBranchById(
     @Param() branchIdDto: BranchIdDto,
@@ -94,13 +94,13 @@ export class BranchController {
   }
 
   /**
-   * ID 키 값을 이용한 지점 삭제<br/>
-   * deletedAt 값만 업데이트
+   * Delete a branch by ID key<br/>
+   * Only updates the deletedAt value
    *
-   * @param {BranchIdDto} branchIdDto - 지점 ID 키 값
-   * @return {Promise<UpdateBranchResponseDto>} - 삭제 결과
+   * @param {BranchIdDto} branchIdDto - Branch ID key
+   * @return {Promise<UpdateBranchResponseDto>} - Delete result
    */
-  @ApiOperation({ summary: '지점 삭제' })
+  @ApiOperation({ summary: 'Delete branch' })
   @Delete(':id')
   removeBranchById(
     @Param() branchIdDto: BranchIdDto,
@@ -109,13 +109,13 @@ export class BranchController {
   }
 
   /**
-   * 삭제 지점 복구<br/>
-   * deletedAt 값을 null 값으로 업데이트
+   * Restore a deleted branch<br/>
+   * Updates deletedAt back to null
    *
-   * @param {BranchIdDto} branchIdDto - 지점 ID 키 값
+   * @param {BranchIdDto} branchIdDto - Branch ID key
    * @return {Promise<UpdateBranchResponseDto>}
    */
-  @ApiOperation({ summary: '삭제 지점 복구' })
+  @ApiOperation({ summary: 'Restore deleted branch' })
   @Patch('/:id/restore')
   restoreBranchById(
     @Param() branchIdDto: BranchIdDto,
@@ -124,12 +124,12 @@ export class BranchController {
   }
 
   /**
-   * 해당 멤버의 지점 권한
+   * Branch authority for the given member
    *
-   * @param {BranchListByAuthorityDto} branchListByAuthorityDto - 멤버의 권한 지점을 가져오는 데 필요한 데이터
+   * @param {BranchListByAuthorityDto} branchListByAuthorityDto - Data required to fetch a member's authorized branches
    * @return {Promise<BranchListResponseDto>}
    */
-  @ApiOperation({ summary: '해당 멤버의 지점 권한' })
+  @ApiOperation({ summary: "The given member's branch authority" })
   @Post('/member')
   @HttpCode(HttpStatus.OK)
   getBranchListByAuthority(

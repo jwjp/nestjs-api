@@ -13,36 +13,36 @@ import { ApiHideProperty } from '@nestjs/swagger';
 @Entity()
 export class Branch {
   /**
-   * 지점ID 기본키<br/>
+   * Branch ID primary key<br/>
    * (Auto Increment)
    */
   @PrimaryGeneratedColumn()
   id: number;
 
   /**
-   * 지점명
-   * @example '수원 지점'
+   * Branch name
+   * @example 'Suwon Branch'
    */
   @Column('varchar', {
     length: 20,
     nullable: false,
-    comment: '지점명',
+    comment: 'Branch name',
   })
   name: string;
 
   /**
-   * 메인 표시명
-   * @example '서울 강남점'
+   * Main display name
+   * @example 'Seoul Gangnam Branch'
    */
   @Column('varchar', {
     length: 20,
     nullable: false,
-    comment: '메인 표시명',
+    comment: 'Main display name',
   })
   title: string;
 
   /**
-   * 홈페이지 URL
+   * Homepage URL
    * @example https://docs.nestjs.com
    */
   @Column('varchar', {
@@ -53,29 +53,29 @@ export class Branch {
   url: string;
 
   /**
-   * 지점 표시 순서
+   * Branch display order
    * @example 1
    */
   @Column('integer', {
     nullable: false,
     default: 99,
-    comment: '순서',
+    comment: 'Order',
   })
   seq: number;
 
   /**
-   * 노출 여부
+   * Whether it is shown
    * @example true | false
    */
   @Column('boolean', {
     nullable: false,
     default: false,
-    comment: '노출 여부',
+    comment: 'Whether it is shown',
   })
   isShow: boolean = false;
 
   /**
-   * 생성일시
+   * Created timestamp
    * default: CURRENT_TIMESTAMP
    */
   @CreateDateColumn({
@@ -86,7 +86,7 @@ export class Branch {
   createdAt: Date;
 
   /**
-   * 수정일시
+   * Updated timestamp
    * default CURRENT_TIMESTAMP
    * On Update CURRENT_TIMESTAMP
    */
@@ -99,7 +99,7 @@ export class Branch {
   updatedAt: Date;
 
   /**
-   * 삭제일시
+   * Deleted timestamp
    */
   @DeleteDateColumn({
     type: 'timestamp',

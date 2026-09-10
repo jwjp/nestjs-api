@@ -18,21 +18,21 @@ import { ApiHideProperty } from '@nestjs/swagger';
 @Index('ROLE', ['role'])
 export class Member {
   /**
-   * 멤버ID 기본키<br/>
+   * Member ID primary key<br/>
    * (Auto Increment)
    */
   @PrimaryGeneratedColumn()
   id: number;
 
   /**
-   * 로그인에 사용하는 ID
+   * ID used to log in
    * @example gildong
    */
   @Column('varchar', {
     unique: true,
     length: 20,
     nullable: false,
-    comment: '로그인 아이디',
+    comment: 'Login ID',
   })
   loginId: string;
 
@@ -40,36 +40,36 @@ export class Member {
     unique: true,
     length: 50,
     nullable: false,
-    comment: '이메일 주소',
+    comment: 'Email address',
   })
   email: string;
 
   /**
-   * 멤버 이름
-   * @example 홍길동
+   * Member name
+   * @example Hong Gildong
    */
   @Column('varchar', {
     length: 20,
     nullable: false,
-    comment: '멤버 이름',
+    comment: 'Member name',
   })
   username: string;
 
   /**
-   * 비밀번호
+   * Password
    * @example P@ssw0rd
    */
   @Column('varchar', {
     length: 100,
     nullable: false,
-    comment: '비밀번호',
+    comment: 'Password',
     select: false,
   })
   @ApiHideProperty()
   password: string;
 
   /**
-   * 멤버 권한
+   * Member role
    * @example admin
    */
   @Column('enum', {
@@ -77,34 +77,34 @@ export class Member {
     default: 'user',
     nullable: false,
     comment:
-      '멤버 권한(admin: 관리자, user: 일반 사용자, deny: 접속 차단 된 사용자)',
+      'Member role (admin: administrator, user: regular user, deny: blocked user)',
   })
   role: string;
 
   /**
-   * 리프레시 토큰
+   * Refresh token
    */
   @Column('text', {
     nullable: true,
     default: null,
     select: false,
-    comment: '리프레시 토큰',
+    comment: 'Refresh token',
   })
   @ApiHideProperty()
   refreshToken: string;
 
   /**
-   * 이메일 검증일
+   * Email verification date
    */
   @Column('timestamp', {
     nullable: true,
     default: null,
-    comment: '이메일 검증일',
+    comment: 'Email verification date',
   })
   emailValidateAt: Date | null = null;
 
   /**
-   * 생성일시
+   * Created timestamp
    * default: CURRENT_TIMESTAMP
    */
   @CreateDateColumn({
@@ -115,7 +115,7 @@ export class Member {
   createdAt: Date;
 
   /**
-   * 수정일시
+   * Updated timestamp
    * default CURRENT_TIMESTAMP
    * On Update CURRENT_TIMESTAMP
    */
@@ -128,7 +128,7 @@ export class Member {
   updatedAt: Date;
 
   /**
-   * 삭제일시
+   * Deleted timestamp
    */
   @DeleteDateColumn({
     type: 'timestamp',

@@ -28,11 +28,11 @@ export class S3Service {
   }
 
   /**
-   * 파일 업로드
+   * File upload
    *
-   * @param {string} key - S3 파일명
-   * @param {fs.ReadStream} fileStream - 대상 파일
-   * @param {string} prefix - S3 폴더명
+   * @param {string} key - S3 filename
+   * @param {fs.ReadStream} fileStream - Target file
+   * @param {string} prefix - S3 folder name
    * @return {Promise<PutObjectCommandOutput>}
    */
   async putObjectFile(
@@ -50,8 +50,8 @@ export class S3Service {
   }
 
   /**
-   * 다중 파일 한번에 업로드
-   * Promise.all 메서드 사용 필수
+   * Upload multiple files at once
+   * Must be used with Promise.all
    *
    * @param {PutObjectCommandInput} input
    * @return {Promise<PutObjectCommandOutput>}
@@ -63,11 +63,11 @@ export class S3Service {
   }
 
   /**
-   * 파일 업로드
+   * File upload
    *
-   * @param {string} key - S3 파일명
-   * @param {string} body - 파일 내용
-   * @param {string} prefix - S3 폴더명
+   * @param {string} key - S3 filename
+   * @param {string} body - File content
+   * @param {string} prefix - S3 folder name
    * @return {Promise<PutObjectCommandOutput>}
    */
   async putObjectPlain(
@@ -85,8 +85,8 @@ export class S3Service {
   }
 
   /**
-   * 특정 폴더의 파일 리스트
-   * 확장자 필터링 및 최대 개수 등록 가능
+   * List of files in a given folder
+   * Supports filtering by extension and a maximum item count
    *
    * @param {string} prefix
    * @param {number} maxKeys
@@ -104,11 +104,11 @@ export class S3Service {
       }),
     );
 
-    // 파일명 배열
+    // Array of filenames
     let files: string[] = [];
 
     if (Contents.length > 0) {
-      // 특정 파일 필터링
+      // Filter to specific files
       switch (prefix) {
         case 'logs':
           files = Contents.map((content) => content.Key).filter(
@@ -125,11 +125,11 @@ export class S3Service {
   }
 
   /**
-   * 버킷에 파일이 있는 지 확인
+   * Check whether a file exists in the bucket
    *
-   * @param {string} filename - 파일명, S3 경로를 제외한 Key 값
-   * @param {string} prefix - S3 경로명
-   * @param {string | undefined} versionId - 파일 버전 ID값
+   * @param {string} filename - Filename, i.e. the Key without the S3 path
+   * @param {string} prefix - S3 path
+   * @param {string | undefined} versionId - File version ID
    */
   async getObject(
     filename: string,
@@ -155,12 +155,12 @@ export class S3Service {
   }
 
   /**
-   * S3 파일을 로컬 디스크에 다운로드
+   * Download an S3 file to local disk
    *
-   * @param {string} filename - 파일명, S3 경로를 제외한 Key 값
-   * @param {string} destination - 로컬에 저장 할 폴더명
-   * @param {string} prefix - S3 경로명
-   * @param {string | undefined} versionId - 파일 버전 ID값
+   * @param {string} filename - Filename, i.e. the Key without the S3 path
+   * @param {string} destination - Local folder to save the file in
+   * @param {string} prefix - S3 path
+   * @param {string | undefined} versionId - File version ID
    */
   async downloadObject(
     filename: string,
@@ -176,10 +176,10 @@ export class S3Service {
       }),
     );
 
-    // 프로젝트 루트 폴더
+    // Project root folder
     const rootPath: string = path.join(__dirname + '/../../../');
 
-    // 프로젝트 루트 폴더가 존재하지 않는 경우
+    // If the project root folder does not exist
     if (
       !fs.existsSync(rootPath) &&
       rootPath.split('/').filter(Boolean).pop() !==
@@ -190,31 +190,31 @@ export class S3Service {
       });
     }
 
-    // 저장 할 폴더 경로
+    // Folder to save the file in
     const downloadFolder: string = path.join(
       rootPath,
       this.configService.get<string>('UPLOAD_DISK_PATH'),
       destination,
     );
 
-    // 저장 할 폴더가 없으면 생성
+    // Create the folder if it does not exist
     !fs.existsSync(downloadFolder) &&
       fs.mkdirSync(downloadFolder, { recursive: true });
 
-    // S3 파일 데이터
+    // S3 file data
     const uint8Array: Uint8Array = await Body.transformToByteArray();
 
-    // 로컬 디스크 파일에 덮어쓰기
+    // Overwrite the local disk file
     const writeStream: fs.WriteStream = fs.createWriteStream(
       downloadFolder + '/' + filename,
     );
 
-    // 파일 생성 및 생성 여부
+    // Whether the file was written
     return writeStream.write(uint8Array);
   }
 
   /**
-   * 여러개의 S3 파일들을 동시에 삭제
+   * Delete multiple S3 files at once
    *
    * @param {object} deleteObject - [{Key: '', VersionId: ''}, ...]
    * @return {Promise<object>}
@@ -236,11 +236,11 @@ export class S3Service {
   }
 
   /**
-   * 특정 S3 파일 삭제
+   * Delete a specific S3 file
    *
-   * @param {string} filename - 파일명, S3 경로를 제외한 키 값
-   * @param {string} prefix - S3 폴더명
-   * @param {string} versionId - S3 버전 ID 값, undefined 인 경우 모든 버전의 파일 일괄 삭제
+   * @param {string} filename - Filename, i.e. the key without the S3 path
+   * @param {string} prefix - S3 folder name
+   * @param {string} versionId - S3 version ID; if undefined, every version of the file is deleted
    */
   async deleteObject(
     filename: string,
@@ -257,7 +257,7 @@ export class S3Service {
 
     return {
       httpStatusCode: $metadata.httpStatusCode,
-      deleteMarker: DeleteMarker, // true 이면 모든 버전을 포함한 해당 파일 삭제
+      deleteMarker: DeleteMarker, // true means every version of the file, including this one, was deleted
       versionId: VersionId,
     };
   }

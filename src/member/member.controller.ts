@@ -45,12 +45,12 @@ import { Request } from 'express';
   status: '4XX',
   type: ResponseErrorDto,
   description:
-    '4XX 및 5XX 에러 메시지는 message.error 객체로 확인<br/>민감한 에러 메시지는 상세하게 기술하지 않음',
+    '4XX and 5XX error messages can be found in the message.error object<br/>Sensitive error messages are not described in detail',
 })
 @ApiResponse({
   status: '2XX',
   type: ResponseDto,
-  description: '2XX Response 값은 message 객체에서 확인',
+  description: '2XX response values can be found in the message object',
 })
 @Roles('admin')
 @Controller('members')
@@ -58,12 +58,12 @@ export class MemberController {
   constructor(private readonly memberService: MemberService) {}
 
   /**
-   * 회원가입
+   * Sign up
    *
-   * @param {SignUpDto} signUpDto - 회원가입에 필요한 데이터
+   * @param {SignUpDto} signUpDto - Data required to sign up
    * @return {Promise<SignUpResponseDto>}
    */
-  @ApiOperation({ security: [], summary: '회원가입' })
+  @ApiOperation({ security: [], summary: 'Sign up' })
   @Public()
   @Post()
   async signUp(@Body() signUpDto: SignUpDto): Promise<SignUpResponseDto> {
@@ -71,13 +71,13 @@ export class MemberController {
   }
 
   /**
-   * 이메일 검증 토큰 발송
+   * Send the email verification token
    *
    * @param {SendValidationDto} sendValidationDto
    * @param {Request} request
    * @return {Promise<SendValidationResponseDto>}
    */
-  @ApiOperation({ summary: '이메일 검증 토큰 발송' })
+  @ApiOperation({ summary: 'Send the email verification token' })
   @Post('validation')
   async sendValidation(
     @Body() sendValidationDto: SendValidationDto,
@@ -87,12 +87,12 @@ export class MemberController {
   }
 
   /**
-   * 이메일 검증
+   * Verify the email
    *
    * @param {EmailValidateDto} emailValidateDto
    * @return {Promise<EmailValidateResponseDto>}
    */
-  @ApiOperation({ security: [], summary: '이메일 검증' })
+  @ApiOperation({ security: [], summary: 'Verify the email' })
   @Public()
   @Get('validate/:token')
   async emailValidate(
@@ -102,12 +102,12 @@ export class MemberController {
   }
 
   /**
-   * 로그인
+   * Log in
    *
-   * @param {LoginDto} loginDto - 로그인에 필요한 데이터
-   * @return {Promise<LoginResponseDto>} - 토큰 발급
+   * @param {LoginDto} loginDto - Data required to log in
+   * @return {Promise<LoginResponseDto>} - Issues tokens
    */
-  @ApiOperation({ security: [], summary: '로그인' })
+  @ApiOperation({ security: [], summary: 'Log in' })
   @Public()
   @Post('login')
   login(@Body() loginDto: LoginDto): Promise<LoginResponseDto> {
@@ -115,15 +115,15 @@ export class MemberController {
   }
 
   /**
-   * 액세스 토큰 재발급 요청<br/>
-   * 리프레시 토큰이 유효한 경우에 재발급
+   * Request an access token refresh<br/>
+   * Refreshed only if the refresh token is valid
    *
-   * @param {MemberRefreshDto} memberRefreshDto - 멤버 ID 키 값
-   * @return {Promise<MemberRefreshResponseDto>} - 액세스 토큰 재발급
+   * @param {MemberRefreshDto} memberRefreshDto - Member ID key
+   * @return {Promise<MemberRefreshResponseDto>} - Access token refresh
    */
   @ApiOperation({
     security: [],
-    summary: '토큰 재발급 요청(리프레시 토큰 사용)',
+    summary: 'Request a token refresh (using the refresh token)',
   })
   @Public()
   @Post('refresh')
@@ -134,12 +134,12 @@ export class MemberController {
   }
 
   /**
-   * 아이디 중복체크 (삭제 포함)
+   * Check login ID duplicates (including deleted rows)
    *
-   * @param {ConfirmIdDto} confirmId - 중복체크에 필요한 데이터
-   * @return {Promise<ConfirmIdResponseDto>} - 중복 여부
+   * @param {ConfirmIdDto} confirmId - Data required for the duplicate check
+   * @return {Promise<ConfirmIdResponseDto>} - Whether it is duplicated
    */
-  @ApiOperation({ security: [], summary: '아이디 중복체크' })
+  @ApiOperation({ security: [], summary: 'Check login ID duplicate' })
   @Public()
   @Post('/duplicated/id')
   @HttpCode(HttpStatus.OK)
@@ -150,12 +150,12 @@ export class MemberController {
   }
 
   /**
-   * 이메일 중복체크 (삭제 포함)
+   * Check email duplicates (including deleted rows)
    *
-   * @param {ConfirmEmailDto} confirmEmail - 중복체크에 필요한 데이터
-   * @return {Promise<ConfirmEmailResponseDto>} - 중복 여부
+   * @param {ConfirmEmailDto} confirmEmail - Data required for the duplicate check
+   * @return {Promise<ConfirmEmailResponseDto>} - Whether it is duplicated
    */
-  @ApiOperation({ security: [], summary: '이메일 중복체크' })
+  @ApiOperation({ security: [], summary: 'Check email duplicate' })
   @Public()
   @Post('/duplicated/email')
   @HttpCode(HttpStatus.OK)
@@ -166,34 +166,36 @@ export class MemberController {
   }
 
   /**
-   * 삭제되지 않은 멤버 수
+   * Count of members not deleted
    *
    * @return {Promise<MemberCountResponseDto>}
    */
-  @ApiOperation({ summary: '삭제되지 않은 멤버 수' })
+  @ApiOperation({ summary: 'Count of members not deleted' })
   @Get('/count')
   getMemberCount(): Promise<MemberCountResponseDto> {
     return this.memberService.getMemberCount();
   }
 
   /**
-   * 삭제 된 멤버 수
+   * Count of deleted members
    *
    * @return {Promise<MemberCountResponseDto>}
    */
-  @ApiOperation({ summary: '삭제 된 멤버 수' })
+  @ApiOperation({ summary: 'Count of deleted members' })
   @Get('/count/deleted')
   getDeletedMemberCount(): Promise<MemberCountResponseDto> {
     return this.memberService.getDeletedMemberCount();
   }
 
   /**
-   * 페이지당 멤버 리스트 (삭제 멤버 제외)
+   * Paginated member list (excluding deleted members)
    *
-   * @param {MemberListPageDto} memberListPageDto - 페이지 번호 및 페이지당 표시 할 멤버 수
+   * @param {MemberListPageDto} memberListPageDto - Page number and items per page
    * @return {Promise<MemberListResponseDto>}
    */
-  @ApiOperation({ summary: '페이지당 멤버 리스트 (삭제 멤버 제외)' })
+  @ApiOperation({
+    summary: 'Paginated member list (excluding deleted members)',
+  })
   @Get()
   getMemberListPerPage(
     @Query() memberListPageDto: MemberListPageDto,
@@ -202,12 +204,12 @@ export class MemberController {
   }
 
   /**
-   * 페이지당 삭제 멤버 리스트
+   * Paginated list of deleted members
    *
-   * @param {MemberListPageDto} memberListPageDto - 페이지 번호 및 페이지당 표시 할 멤버 수
+   * @param {MemberListPageDto} memberListPageDto - Page number and items per page
    * @return {Promise<MemberListResponseDto>}
    */
-  @ApiOperation({ summary: '페이지당 삭제 멤버 리스트' })
+  @ApiOperation({ summary: 'Paginated list of deleted members' })
   @Get('/deleted')
   getDeletedMemberListPerPage(
     @Query() memberListPageDto: MemberListPageDto,
@@ -216,26 +218,26 @@ export class MemberController {
   }
 
   /**
-   * 멤버 정보<br/>
-   * 메뉴 및 지점 권한 정보도 포함
+   * Member info<br/>
+   * Also includes menu and branch authority info
    *
-   * @param {MemberIdDto} memberIdDto - 멤버 ID 키 값
+   * @param {MemberIdDto} memberIdDto - Member ID key
    * @return {Promise<MemberResponseDto>}
    */
-  @ApiOperation({ summary: '멤버 정보' })
+  @ApiOperation({ summary: 'Member info' })
   @Get(':id')
   getMemberById(@Param() memberIdDto: MemberIdDto): Promise<MemberResponseDto> {
     return this.memberService.getMemberById(memberIdDto);
   }
 
   /**
-   * ID 키 값을 이용한 멤버 업데이트
+   * Update a member by ID key
    *
-   * @param {MemberIdDto} memberIdDto - 멤버 ID 키 값
-   * @param {UpdateMemberDto} updateMemberDto - 업데이트에 필요한 데이터
-   * @return {Promise<UpdateMemberResponseDto>} - 업데이트 결과
+   * @param {MemberIdDto} memberIdDto - Member ID key
+   * @param {UpdateMemberDto} updateMemberDto - Data required for the update
+   * @return {Promise<UpdateMemberResponseDto>} - Update result
    */
-  @ApiOperation({ summary: '멤버 업데이트' })
+  @ApiOperation({ summary: 'Update member' })
   @Patch(':id')
   updateMemberById(
     @Param() memberIdDto: MemberIdDto,
@@ -245,14 +247,14 @@ export class MemberController {
   }
 
   /**
-   * ID 키 값을 이용한 맴버 삭제<br/>
-   * deletedAt 값만 업데이트
+   * Delete a member by ID key<br/>
+   * Only updates the deletedAt value
    *
-   * @param {MemberIdDto} memberIdDto - 멤버 ID 키 값
+   * @param {MemberIdDto} memberIdDto - Member ID key
    * @param {Request} request
-   * @return {Promise<UpdateMemberResponseDto>} - 삭제 결과
+   * @return {Promise<UpdateMemberResponseDto>} - Delete result
    */
-  @ApiOperation({ summary: '멤버 삭제' })
+  @ApiOperation({ summary: 'Delete member' })
   @Delete(':id')
   removeMemberById(
     @Param() memberIdDto: MemberIdDto,
@@ -265,13 +267,13 @@ export class MemberController {
   }
 
   /**
-   * 삭제 멤버 복구<br/>
-   * deletedAt 값을 null 값으로 업데이트
+   * Restore a deleted member<br/>
+   * Updates deletedAt back to null
    *
-   * @param {MemberIdDto} memberIdDto - 멤버 ID 키 값
+   * @param {MemberIdDto} memberIdDto - Member ID key
    * @return {Promise<UpdateMemberResponseDto>}
    */
-  @ApiOperation({ summary: '삭제 멤버 복구' })
+  @ApiOperation({ summary: 'Restore deleted member' })
   @Patch('/:id/restore')
   restoreMemberById(
     @Param() memberIdDto: MemberIdDto,

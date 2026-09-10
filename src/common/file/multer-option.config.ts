@@ -38,7 +38,7 @@ export class MulterOptionConfig implements MulterOptionsFactory {
             '/' +
             nowDestination;
 
-          // 폴더명 길이 확인 (최대 100)
+          // Check the folder name length (max 100)
           if (dest.length > 100) {
             return callback(
               new ServiceUnavailableException('Too long folder name'),
@@ -46,7 +46,7 @@ export class MulterOptionConfig implements MulterOptionsFactory {
             );
           }
 
-          // 폴더 없는 경우, 폴더 생성
+          // Create the folder if it does not exist
           !fs.existsSync(dest) && fs.mkdirSync(dest, { recursive: true });
           callback(null, dest);
         },
@@ -57,7 +57,7 @@ export class MulterOptionConfig implements MulterOptionsFactory {
           const filename =
             Date.now() + '-' + randomUUID() + extname(file.originalname);
 
-          // 업로드하는 파일명 길이 확인 (최대 255)
+          // Check the uploaded filename length (max 255)
           if (filename.length > 255) {
             return callback(
               new ServiceUnavailableException('Too long upload filename'),
@@ -65,7 +65,7 @@ export class MulterOptionConfig implements MulterOptionsFactory {
             );
           }
 
-          // 파일명에 확장자 붙이고 업로드
+          // Append the extension to the filename and upload
           callback(null, filename);
         },
       }),
@@ -83,7 +83,7 @@ export class MulterOptionConfig implements MulterOptionsFactory {
         console.log('fileFilter: ');
         console.log(file);
 
-        // 업로드 지원하는 파일 타입 확인
+        // Check whether the file type is supported for upload
         if (!MimeType.includes(file.mimetype)) {
           return callback(
             new UnsupportedMediaTypeException('File type not allowed'),
@@ -91,7 +91,7 @@ export class MulterOptionConfig implements MulterOptionsFactory {
           );
         }
 
-        // 업로드하는 파일명 길이 확인 (최대 255)
+        // Check the uploaded filename length (max 255)
         if (file.originalname.length > 255) {
           return callback(
             new ServiceUnavailableException('Too long original filename'),
@@ -105,7 +105,7 @@ export class MulterOptionConfig implements MulterOptionsFactory {
   }
 }
 
-// TODO: FileInterceptor 두번째 인자로 MulterOptions 사용 가능
+// TODO: MulterOptions can be used as the second argument of FileInterceptor
 export const diskStorageOption: MulterOptions = {
   storage: diskStorage({
     destination: (req, file, callback) => {
@@ -118,7 +118,7 @@ export const diskStorageOption: MulterOptions = {
         String(nowDate.getDate()).padStart(2, '0');
       const dest = process.env.UPLOAD_DISK_PATH + '/' + nowDestination;
 
-      // 폴더명 길이 확인 (최대 100)
+      // Check the folder name length (max 100)
       if (dest.length > 100) {
         return callback(
           new ServiceUnavailableException('Too long folder name'),
@@ -126,7 +126,7 @@ export const diskStorageOption: MulterOptions = {
         );
       }
 
-      // 폴더 없는 경우, 폴더 생성
+      // Create the folder if it does not exist
       !fs.existsSync(dest) && fs.mkdirSync(dest, { recursive: true });
       callback(null, dest);
     },
@@ -134,7 +134,7 @@ export const diskStorageOption: MulterOptions = {
       const filename =
         Date.now() + '-' + randomUUID() + extname(file.originalname);
 
-      // 업로드하는 파일명 길이 확인 (최대 255)
+      // Check the uploaded filename length (max 255)
       if (filename.length > 255) {
         return callback(
           new ServiceUnavailableException('Too long upload filename'),
@@ -142,7 +142,7 @@ export const diskStorageOption: MulterOptions = {
         );
       }
 
-      // 파일명에 확장자 붙이고 업로드
+      // Append the extension to the filename and upload
       callback(null, filename);
     },
   }),
@@ -154,7 +154,7 @@ export const diskStorageOption: MulterOptions = {
     files: 1,
   },
   fileFilter: (req, file, callback) => {
-    // 업로드 지원하는 파일 타입 확인
+    // Check whether the file type is supported for upload
     if (!MimeType.includes(file.mimetype)) {
       return callback(
         new UnsupportedMediaTypeException('File type not allowed'),
@@ -162,7 +162,7 @@ export const diskStorageOption: MulterOptions = {
       );
     }
 
-    // 업로드하는 파일명 길이 확인 (최대 255)
+    // Check the uploaded filename length (max 255)
     if (file.originalname.length > 255) {
       return callback(
         new ServiceUnavailableException('Too long original filename'),

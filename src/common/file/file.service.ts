@@ -51,33 +51,33 @@ export class FileService {
   }
 
   /**
-   * S3 파일 업로드
+   * S3 file upload
    */
   async s3UploadFiles(uploadS3FilesDto: UploadS3FilesDto) {
-    // 지점 검색
+    // Look up the branch
     const isBranchExists: boolean = await this.branchService.isBranchExists({
       id: uploadS3FilesDto.branchId,
     });
 
-    // 지점이 없으면 예외처리
+    // Throw an error if the branch does not exist
     if (!isBranchExists) {
       throw new BadRequestException({
         message: '지점이 삭제되었거나 존재하지 않습니다.',
       });
     }
 
-    // S3 업로드 파라미터
+    // S3 upload parameters
     const uploadParams: PutObjectCommandInput[] = [];
 
-    // DB 인서트 파라미터
+    // DB insert parameters
     const insertParams: FileInsertDto[] = [];
 
-    // S3 Url 리턴 값
+    // S3 URL return values
     const uploadS3ResultDtos: UploadS3ResultDto[] = [];
 
-    // 파라미터 입력
+    // Build the parameters
     for (const [i, file] of Object.entries(uploadS3FilesDto.files)) {
-      // S3 업로드 파라미터
+      // S3 upload parameters
       uploadParams.push(<PutObjectCommandInput>{
         Bucket: this.configService.get<string>('AWS_S3_BUCKET'),
         Key:
@@ -90,7 +90,7 @@ export class FileService {
         Body: file.buffer,
       });
 
-      // S3 Url
+      // S3 URL
       uploadS3ResultDtos.push({
         url: `https://${this.configService.get(
           'AWS_S3_BUCKET',
@@ -100,7 +100,7 @@ export class FileService {
         result: true,
       });
 
-      // DB 인서트 파라미터
+      // DB insert parameters
       insertParams.push(<FileInsertDto>{
         branchId: uploadS3FilesDto.branchId,
         originalname: file.originalname,
@@ -113,13 +113,13 @@ export class FileService {
       });
     }
 
-    // 배열 데이터 검증을 위한 인스턴스화
+    // Instantiate for array data validation
     const fileInstance: FileInsertDto[] = plainToInstance(
       FileInsertDto,
       insertParams,
     );
 
-    // 권한 배열 데이터 검증
+    // Validate the array data
     for (const file of fileInstance) {
       const { constraints } = (await validate(file)).pop() || {};
       if (constraints) {
@@ -129,7 +129,7 @@ export class FileService {
       }
     }
 
-    // S3 업로드
+    // Upload to S3
     const putResult: PutObjectCommandOutput[] = await Promise.all(
       uploadParams.map(async (uploadParam: PutObjectCommandInput) => {
         const command: PutObjectCommand = new PutObjectCommand(uploadParam);
@@ -137,7 +137,7 @@ export class FileService {
       }),
     );
 
-    // S3 업로드 실패 시, DB 인서트 파라미터 삭제
+    // Remove the DB insert parameters for any failed S3 uploads
     for (const [idx, { $metadata }] of Object.entries(putResult)) {
       if ($metadata.httpStatusCode !== 200) {
         delete insertParams[idx];
@@ -146,14 +146,14 @@ export class FileService {
       }
     }
 
-    // S3 업로드 결과에 따른 DB 인서트 파라미터
+    // DB insert parameters based on the S3 upload results
     const insertParamsByPutResult: FileInsertDto[] =
       insertParams.filter(Boolean);
 
-    // DB 인서트
+    // Insert into the DB
     await this.fileRepository.save(insertParamsByPutResult);
 
-    // Swagger 문서 적용을 위한 DTO 생성
+    // Build the DTO used for the Swagger docs
     const uploadS3FilesResponse: UploadS3FilesResponse =
       new UploadS3FilesResponse();
     uploadS3FilesResponse.message = uploadS3ResultDtos;
@@ -162,13 +162,13 @@ export class FileService {
   }
 
   async getS3FileListPerPage(s3FileListPageDto: S3FileListPageDto) {
-    // {offset}번째 부터
+    // Starting from the {offset}th item
     const offset = s3FileListPageDto.perPage * (s3FileListPageDto.page - 1);
 
-    // {limit}개 표시
+    // Show {limit} items
     const limit = s3FileListPageDto.perPage;
 
-    // 파일 리스트
+    // File list
     const fileList: File[] = await this.fileRepository.find({
       where: {
         branchId: s3FileListPageDto.branch,
@@ -178,14 +178,14 @@ export class FileService {
       take: limit,
     });
 
-    // Swagger 문서 적용을 위한 DTO 생성
+    // Build the DTO used for the Swagger docs
     const fileListResponseDto: FileListResponseDto = new FileListResponseDto();
     fileListResponseDto.message = fileList;
 
     return fileListResponseDto;
   }
 
-  // TODO: 2. getFiles (s3.service.ts getObjects 참고)
+  // TODO: 2. getFiles (see s3.service.ts getObjects)
   async getS3FileByUniqueKey(
     getS3FileByBranchId: GetS3FileByBranchId,
     getS3FileByFileId: GetS3FileByFileId,
@@ -207,11 +207,11 @@ export class FileService {
     //
     // console.log(Contents);
     //
-    // // 파일명 배열
+    // // Array of filenames
     // let files: string[] = [];
     //
     // if (Contents.length > 0) {
-    //   // 특정 파일 필터링
+    //   // Filter to specific files
     //   files = Contents.map((content) => content.Key).filter(
     //     (file) => path.extname(file).toLowerCase() === '.jpg',
     //   );
@@ -252,11 +252,11 @@ export class FileService {
       }),
     );
 
-    // 파일명 배열
+    // Array of filenames
     let files: string[] = [];
 
     if (Contents.length > 0) {
-      // 특정 파일 필터링
+      // Filter to specific files
       switch (prefix) {
         case 'logs':
           files = Contents.map((content) => content.Key).filter(
@@ -287,7 +287,7 @@ export class FileService {
 
     return {
       httpStatusCode: $metadata.httpStatusCode,
-      deleteMarker: DeleteMarker, // true 이면 모든 버전을 포함한 해당 파일 삭제
+      deleteMarker: DeleteMarker, // true means every version of the file, including this one, was deleted
       versionId: VersionId,
     };
   }
@@ -308,5 +308,5 @@ export class FileService {
     });
   }
 
-  // TODO: S3 API 완료 후 diskStorage 진행
+  // TODO: Move on to diskStorage once the S3 API is complete
 }

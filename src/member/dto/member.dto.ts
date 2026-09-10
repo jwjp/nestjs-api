@@ -28,11 +28,11 @@ import { Branch } from '../entities/branch.entity';
 import { Type } from 'class-transformer';
 
 /**
- * 멤버 엔티티 기본 DTO
+ * Base DTO for the Member entity
  */
 export class MemberDto {
   /**
-   * 로그인에 사용하는 ID
+   * ID used to log in
    * @example gildong
    */
   @IsAlphanumeric('en-US', {
@@ -47,7 +47,7 @@ export class MemberDto {
   loginId: string;
 
   /**
-   * 이메일 주소
+   * Email address
    * @example example@example.com
    */
   @IsEmail(
@@ -65,8 +65,8 @@ export class MemberDto {
   email: string;
 
   /**
-   * 멤버 이름
-   * @example 홍길동
+   * Member name
+   * @example Hong Gildong
    */
   @IsString({
     message: '이름은 문자만 사용할 수 있습니다.',
@@ -80,8 +80,8 @@ export class MemberDto {
   username: string;
 
   /**
-   * 비밀번호<br/>
-   * 숫자 및 대/소/특수문자 각각 최소 1개 이상 필요
+   * Password<br/>
+   * Requires at least one number, one uppercase letter, one lowercase letter, and one special character
    *
    * @example P@ssw0rd
    */
@@ -107,11 +107,11 @@ export class MemberDto {
 }
 
 /**
- * 회원가입에 필요한 데이터
+ * Data required to sign up
  */
 export class SignUpDto extends MemberDto {
   /**
-   * 지점 IDs
+   * Branch IDs
    * @example [1, 2, 3]
    */
   @IsArray({
@@ -121,7 +121,7 @@ export class SignUpDto extends MemberDto {
   branchIds?: number[] = [];
 
   /**
-   * 메뉴 IDs
+   * Menu IDs
    * @example [1, 2, 3]
    */
   @IsArray({
@@ -132,7 +132,7 @@ export class SignUpDto extends MemberDto {
 }
 
 /**
- * (Swagger) 회원가입 응답메시지
+ * (Swagger) Sign-up response message
  */
 class SignUpResponseMessage extends IntersectionType(
   OmitType(Member, ['password']),
@@ -140,7 +140,7 @@ class SignUpResponseMessage extends IntersectionType(
 ) {}
 
 /**
- * (Swagger) 회원가입 응답메시지, 인터셉터 응답 포함
+ * (Swagger) Sign-up response message, including the interceptor response
  */
 export class SignUpResponseDto extends PartialType(ResponseDto) {
   result: boolean;
@@ -151,7 +151,7 @@ export class SignUpResponseDto extends PartialType(ResponseDto) {
 }
 
 /**
- * 이메일 검증 토큰 발송 DTO
+ * DTO for sending the email verification token
  */
 export class SendValidationDto extends PickType(MemberDto, [
   'email',
@@ -159,44 +159,44 @@ export class SendValidationDto extends PickType(MemberDto, [
 ]) {}
 
 /**
- * 이메일 발송 결과 DTO
+ * DTO for the email send result
  */
 export class EmailResultDto {
   /**
-   * 이메일 발송 성공 리스트
+   * List of successfully sent emails
    * @example ['example01@example.com', 'example02@example.com']
    */
   @IsEmail({}, { each: true, message: '이메일 형식이 올바르지 않습니다.' })
   accepted: string[];
 
   /**
-   * 이메일 발송 실패 리스트
+   * List of failed emails
    * @example ['example01@example.com', 'example02@example.com']
    */
   @IsEmail({}, { each: true, message: '이메일 형식이 올바르지 않습니다.' })
   rejected: string[];
 
   /**
-   * 이메일 발송 소요시간
+   * Time taken to send the email
    */
   @IsNumber()
   messageTile: number;
 
   /**
-   * 발송한 이메일 크기
+   * Size of the sent email
    */
   @IsNumber()
   messageSize: number;
 
   /**
-   * 결과 메시지
+   * Result message
    */
   @IsString()
   response: string;
 }
 
 /**
- * (Swagger) 이메일 검증 토큰 발송 결과, 인터셉터 응답 포함
+ * (Swagger) Email verification token send result, including the interceptor response
  */
 export class SendValidationResponseDto extends PartialType(ResponseDto) {
   result: boolean;
@@ -207,7 +207,7 @@ export class SendValidationResponseDto extends PartialType(ResponseDto) {
 }
 
 /**
- * 이메일 검증 DTO
+ * Email verification DTO
  */
 export class EmailValidateDto {
   @IsJWT({
@@ -217,7 +217,7 @@ export class EmailValidateDto {
 }
 
 /**
- * (Swagger) 이메일 검증 후 업데이트 결과, 인터셉터 응답 포함
+ * (Swagger) Update result after email verification, including the interceptor response
  */
 export class EmailValidateResponseDto extends PartialType(ResponseDto) {
   result: boolean;
@@ -228,12 +228,12 @@ export class EmailValidateResponseDto extends PartialType(ResponseDto) {
 }
 
 /**
- * 로그인 DTO
+ * Login DTO
  */
 export class LoginDto extends PickType(MemberDto, ['loginId', 'password']) {}
 
 /**
- * (Swagger) 로그인 결과, 인터셉터 응답 포함
+ * (Swagger) Login result, including the interceptor response
  */
 export class LoginResponseDto extends PartialType(ResponseDto) {
   result: boolean;
@@ -244,12 +244,12 @@ export class LoginResponseDto extends PartialType(ResponseDto) {
 }
 
 /**
- * 아이디 중복체크 (삭제 포함) DTO
+ * DTO for checking login ID duplicates (including deleted rows)
  */
 export class ConfirmIdDto extends PickType(MemberDto, ['loginId']) {}
 
 /**
- * (Swagger) 아이디 중복체크 (삭제 포함) 결과, 인터셉터 응답 포함
+ * (Swagger) Login ID duplicate check result (including deleted rows), including the interceptor response
  */
 export class ConfirmIdResponseDto extends PartialType(ResponseDto) {
   result: boolean;
@@ -260,12 +260,12 @@ export class ConfirmIdResponseDto extends PartialType(ResponseDto) {
 }
 
 /**
- * 이메일 중복체크 (삭제 포함) DTO
+ * DTO for checking email duplicates (including deleted rows)
  */
 export class ConfirmEmailDto extends PickType(MemberDto, ['email']) {}
 
 /**
- * (Swagger) 이메일 중복체크 (삭제 포함) 결과, 인터셉터 응답 포함
+ * (Swagger) Email duplicate check result (including deleted rows), including the interceptor response
  */
 export class ConfirmEmailResponseDto extends PartialType(ResponseDto) {
   result: boolean;
@@ -276,7 +276,7 @@ export class ConfirmEmailResponseDto extends PartialType(ResponseDto) {
 }
 
 /**
- * (Swagger) 멤버 수 카운트 결과, 인터셉터 응답 포함
+ * (Swagger) Member count result, including the interceptor response
  */
 export class MemberCountResponseDto extends PartialType(ResponseDto) {
   result: boolean;
@@ -287,7 +287,7 @@ export class MemberCountResponseDto extends PartialType(ResponseDto) {
 }
 
 /**
- * (Swagger) 멤버 리스트 결과, 인터셉터 응답 포함
+ * (Swagger) Member list result, including the interceptor response
  */
 export class MemberListResponseDto extends PartialType(ResponseDto) {
   result: boolean;
@@ -298,7 +298,7 @@ export class MemberListResponseDto extends PartialType(ResponseDto) {
 }
 
 /**
- * 멤버 정보 중 메뉴 권한
+ * Menu authority within the member info
  */
 class AuthorityMenuResponse extends PickType(Menu, [
   'id',
@@ -308,7 +308,7 @@ class AuthorityMenuResponse extends PickType(Menu, [
 ]) {}
 
 /**
- * 멤버 정보 중 브랜치 권한
+ * Branch authority within the member info
  */
 class AuthorityBranchResponse extends PickType(Branch, [
   'id',
@@ -319,7 +319,7 @@ class AuthorityBranchResponse extends PickType(Branch, [
 ]) {}
 
 /**
- * 멤버 정보 중 권한 상세내용
+ * Authority details within the member info
  */
 class AuthorityResponseMessage extends PickType(Authority, ['id']) {
   id: number;
@@ -328,7 +328,7 @@ class AuthorityResponseMessage extends PickType(Authority, ['id']) {
 }
 
 /**
- * 멤버 및 권한 정보
+ * Member and authority info
  */
 class MemberResponseMessage extends OmitType(Member, ['authority']) {
   id: number;
@@ -343,7 +343,7 @@ class MemberResponseMessage extends OmitType(Member, ['authority']) {
 }
 
 /**
- * (Swagger) 멤버 정보 결과, 인터셉터 응답 포함
+ * (Swagger) Member info result, including the interceptor response
  */
 export class MemberResponseDto extends PartialType(ResponseDto) {
   result: boolean;
@@ -354,14 +354,14 @@ export class MemberResponseDto extends PartialType(ResponseDto) {
 }
 
 /**
- * 멤버 업데이트 DTO
+ * DTO for updating a member
  */
 export class UpdateMemberDto extends PartialType(
   OmitType(SignUpDto, ['loginId']),
 ) {}
 
 /**
- * (Swagger) 멤버 업데이트 결과, 인터셉터 응답 포함
+ * (Swagger) Member update result, including the interceptor response
  */
 export class UpdateMemberResponseDto extends PartialType(ResponseDto) {
   result: boolean;
@@ -372,11 +372,11 @@ export class UpdateMemberResponseDto extends PartialType(ResponseDto) {
 }
 
 /**
- * 멤버 ID 키 값 조회 DTO
+ * DTO for looking up a member by ID
  */
 export class MemberIdDto {
   /**
-   * 멤버ID
+   * Member ID
    * @example 1
    */
   @IsNumberString(
@@ -392,11 +392,11 @@ export class MemberIdDto {
 }
 
 /**
- * 멤버 리스트 페이징 DTO
+ * DTO for paginating the member list
  */
 export class MemberListPageDto {
   /**
-   * 페이지 번호 (최소 1 이상)
+   * Page number (minimum 1)
    * @example 1
    */
   @IsOptional()
@@ -416,7 +416,7 @@ export class MemberListPageDto {
   page?: number = 1;
 
   /**
-   * 페이지 당 표시 할 개수 (최소 1, 최대 100)
+   * Items per page (minimum 1, maximum 100)
    * @example 10
    */
   @IsOptional()
@@ -440,11 +440,11 @@ export class MemberListPageDto {
 }
 
 /**
- * 액세스 토큰 재발급 요청 DTO
+ * DTO for requesting an access token refresh
  */
 export class MemberRefreshDto {
   /**
-   * 멤버ID
+   * Member ID
    * @example 1
    */
   @IsNumber(
@@ -462,7 +462,7 @@ export class MemberRefreshDto {
   id: number;
 
   /**
-   * 로그인 시 발급 된 리프레시 토큰
+   * Refresh token issued at login
    */
   @IsJWT({
     message: '리프레시 토큰이 jwt 형태가 아닙니다.',
@@ -471,7 +471,7 @@ export class MemberRefreshDto {
 }
 
 /**
- * (Swagger) 액세스 토큰 재발급 요청 결과, 인터셉터 응답 포함
+ * (Swagger) Access token refresh result, including the interceptor response
  */
 export class MemberRefreshResponseDto extends PartialType(ResponseDto) {
   result: boolean;

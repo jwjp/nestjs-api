@@ -26,12 +26,12 @@ export class FileController {
   constructor(private readonly fileService: FileService) {}
 
   /**
-   * S3 파일 업로드
+   * S3 file upload
    *
    * @param {UploadS3FilesDto} uploadS3FilesDto
    * @param {Array<Express.Multer.File>} files
    */
-  @ApiOperation({ summary: 'S3 파일 업로드' })
+  @ApiOperation({ summary: 'S3 file upload' })
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(
     FilesInterceptor('files', 10, {

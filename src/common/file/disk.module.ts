@@ -31,7 +31,7 @@ import { MimeType } from './allowed-mime.array';
               '/' +
               nowDestination;
 
-            // 폴더명 길이 확인 (최대 100)
+            // Check the folder name length (max 100)
             if (dest.length > 100) {
               return callback(
                 new ServiceUnavailableException('Too long folder name'),
@@ -39,7 +39,7 @@ import { MimeType } from './allowed-mime.array';
               );
             }
 
-            // 폴더 없는 경우, 폴더 생성
+            // Create the folder if it does not exist
             !fs.existsSync(dest) && fs.mkdirSync(dest, { recursive: true });
             callback(null, dest);
           },
@@ -47,7 +47,7 @@ import { MimeType } from './allowed-mime.array';
             const filename =
               Date.now() + '-' + randomUUID() + extname(file.originalname);
 
-            // 업로드하는 파일명 길이 확인 (최대 255)
+            // Check the uploaded filename length (max 255)
             if (filename.length > 255) {
               return callback(
                 new ServiceUnavailableException('Too long upload filename'),
@@ -55,7 +55,7 @@ import { MimeType } from './allowed-mime.array';
               );
             }
 
-            // 파일명에 확장자 붙이고 업로드
+            // Append the extension to the filename and upload
             callback(null, filename);
           },
         }),
@@ -67,7 +67,7 @@ import { MimeType } from './allowed-mime.array';
           files: 1,
         },
         fileFilter: (req, file, callback) => {
-          // 업로드 지원하는 파일 타입 확인
+          // Check whether the file type is supported for upload
           if (!MimeType.includes(file.mimetype)) {
             return callback(
               new UnsupportedMediaTypeException('File type not allowed'),
@@ -75,7 +75,7 @@ import { MimeType } from './allowed-mime.array';
             );
           }
 
-          // 업로드하는 파일명 길이 확인 (최대 255)
+          // Check the uploaded filename length (max 255)
           if (file.originalname.length > 255) {
             return callback(
               new ServiceUnavailableException('Too long original filename'),

@@ -17,7 +17,7 @@ export class CronController {
   ) {}
 
   /**
-   * Cron 리스트 출력
+   * List registered cron jobs
    *
    * @return {object}
    */
@@ -51,8 +51,8 @@ export class CronController {
   }
 
   /**
-   * nestjs/terminus 패키지에서 제공하는 헬스체크 기능<br/>
-   * http, db ping 체크 및 memory, disk 용량 체크
+   * Health check feature provided by the nestjs/terminus package<br/>
+   * Checks http/db ping plus memory/disk usage
    */
   @ApiOperation({ security: [] })
   @Public()
@@ -63,11 +63,11 @@ export class CronController {
   }
 
   /**
-   * 매일 오전 1시에 로그 파일을 S3 저장
-   * 10Mb 이상이면 슬랙 메시지 발송 후 스킵
-   * 업로드 된 로그 파일의 자동 삭제는 S3 버킷의 수명 주기 규칙 활용
+   * Uploads log files to S3 every day at 1am
+   * Sends a Slack message and skips the file if it is over 10MB
+   * Uploaded log files are auto-deleted via the S3 bucket's lifecycle rules
    *
-   * @return {Promise<PutObjectCommandOutput[]>} - S3 저장 결과
+   * @return {Promise<PutObjectCommandOutput[]>} - S3 upload result
    */
   @Cron('0 1 * * * *', { name: 'logHandling' })
   async logHandling(): Promise<PutObjectCommandOutput[]> {

@@ -1,12 +1,12 @@
 import { Injectable, Logger, NestMiddleware } from '@nestjs/common';
 import { NextFunction, Request, Response } from 'express';
 
-// 특정 모듈에서 사용할 미들웨어
+// Middleware for use in specific modules
 @Injectable()
 export class AuthMiddleware implements NestMiddleware {
   private readonly logger: Logger = new Logger();
 
-  // 로그 또는 필요에 따라 전처리 작업
+  // Logging, or any other pre-processing as needed
   use(req: Request, res: Response, next: () => void): void {
     const { ip, ips, method, path: url } = req;
     const userAgent: string = req.get('user-agent') || '';
@@ -14,7 +14,7 @@ export class AuthMiddleware implements NestMiddleware {
       method === 'GET' ? req.query : req.body,
     );
 
-    // app.set('trust proxy', true) 설정한 경우, ip 그대로 사용
+    // When app.set('trust proxy', true) is configured, use ip as-is
     const proxyIp =
       Array.isArray(ips) && ips.filter(Boolean).length > 0 ? ips.at(-1) : ip;
 
@@ -28,7 +28,7 @@ export class AuthMiddleware implements NestMiddleware {
   }
 }
 
-// 전역 로그용 미들웨어 (클래스 사용 불가)
+// Middleware for global logging (classes can't be used here)
 export function globalMiddleware(
   req: Request,
   res: Response,
@@ -39,11 +39,11 @@ export function globalMiddleware(
   const { ip, ips, method, path: url } = req;
   const userAgent = req.get('user-agent') || '';
 
-  // app.set('trust proxy', true) 설정한 경우, ip 그대로 사용
+  // When app.set('trust proxy', true) is configured, use ip as-is
   const proxyIp =
     Array.isArray(ips) && ips.filter(Boolean).length > 0 ? ips.at(-1) : ip;
 
-  // 응답 완료 후 미들웨어 로그
+  // Middleware log after the response completes
   res.on('close', () => {
     const { statusCode } = res;
     const contentLength = res.get('content-length') ?? 0;
@@ -60,15 +60,15 @@ export function globalMiddleware(
   next();
 }
 
-// 프록시 서버 실제 IP 주소
-// app.set('trust proxy', true) 설정하지 않은 경우, 헤더 분석 필요
+// Real client IP behind a proxy server
+// If app.set('trust proxy', true) is not configured, the headers must be parsed manually
 export function getRealIp(req: Request): string {
   const requestIp: string | string[] =
     req.headers['x-forwarded-for'] ||
     req.headers['x-real-ip'] ||
     req.socket.remoteAddress;
 
-  // XFF 프록시 IP 주소 중 가장 오른쪽 IP 사용
+  // Use the rightmost IP among the XFF proxy IP addresses
   // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-For
   // https://en.wikipedia.org/wiki/X-Forwarded-For
   return String(Array.isArray(requestIp) ? requestIp.at(-1) : requestIp)
@@ -77,7 +77,7 @@ export function getRealIp(req: Request): string {
     .at(0);
 }
 
-// 쿠키 저장
+// Save a cookie
 export function setCookie(
   response: Response,
   name: string,
@@ -86,7 +86,7 @@ export function setCookie(
     httpOnly: boolean;
     secure: boolean;
     sameSite: 'strict';
-    maxAge: number; // 1d: 24 * 60 * 60 * 1000
+    maxAge: number; // 1 day: 24 * 60 * 60 * 1000
   },
 ) {
   return response.cookie(name, value, option);

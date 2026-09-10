@@ -21,10 +21,10 @@ export class MenuService {
   ) {}
 
   /**
-   * 메뉴 생성
+   * Create a menu
    *
-   * @param {CreateMenuDto} createMenuDto - 메뉴 생성에 필요한 데이터
-   * @return {Promise<CreateMenuResponseDto>} - 생성한 메뉴 정보
+   * @param {CreateMenuDto} createMenuDto - Data required to create a menu
+   * @return {Promise<CreateMenuResponseDto>} - The created menu info
    */
   async createMenu(
     createMenuDto: CreateMenuDto,
@@ -32,7 +32,7 @@ export class MenuService {
     const menu: CreateMenuDto & Menu =
       await this.menuRepository.save(createMenuDto);
 
-    // Swagger 문서 적용을 위한 DTO 생성
+    // Build the DTO used for the Swagger docs
     const createMenuResponseDto: CreateMenuResponseDto =
       new CreateMenuResponseDto();
     createMenuResponseDto.message = menu;
@@ -41,7 +41,7 @@ export class MenuService {
   }
 
   /**
-   * 메뉴 (삭제 제외)
+   * Menus (excluding deleted)
    *
    * @return {Promise<GetMenuResponseDto>}
    */
@@ -51,7 +51,7 @@ export class MenuService {
       withDeleted: false,
     });
 
-    // Swagger 문서 적용을 위한 DTO 생성
+    // Build the DTO used for the Swagger docs
     const getMenuResponseDto: GetMenuResponseDto = new GetMenuResponseDto();
     getMenuResponseDto.message = menu;
 
@@ -59,7 +59,7 @@ export class MenuService {
   }
 
   /**
-   * 삭제 된 메뉴
+   * Deleted menus
    *
    * @return {Promise<GetMenuResponseDto>}
    */
@@ -72,7 +72,7 @@ export class MenuService {
       withDeleted: true,
     });
 
-    // Swagger 문서 적용을 위한 DTO 생성
+    // Build the DTO used for the Swagger docs
     const getMenuResponseDto: GetMenuResponseDto = new GetMenuResponseDto();
     getMenuResponseDto.message = menu;
 
@@ -80,42 +80,42 @@ export class MenuService {
   }
 
   /**
-   * ID 키 값을 이용한 메뉴 업데이트
+   * Update a menu by ID key
    *
-   * @param {MenuIdDto} menuIdDto - 메뉴 ID 키 값
-   * @param {UpdateMenuDto} updateMenuDto - 업데이트에 필요한 데이터
-   * @return {Promise<UpdateMenuResponseDto>} - 업데이트 결과
+   * @param {MenuIdDto} menuIdDto - Menu ID key
+   * @param {UpdateMenuDto} updateMenuDto - Data required for the update
+   * @return {Promise<UpdateMenuResponseDto>} - Update result
    */
   async updateMenuById(
     menuIdDto: MenuIdDto,
     updateMenuDto: UpdateMenuDto,
   ): Promise<UpdateMenuResponseDto> {
-    // 업데이트 데이터가 넘어오지 않으면 예외처리
+    // Throw an error if no update data was provided
     if (Object.keys(updateMenuDto).length === 0) {
       throw new BadRequestException({
         message: '요청 데이터가 없습니다.',
       });
     }
 
-    // 메뉴 검색
+    // Look up the menu
     const menu: Menu = await this.menuRepository.findOneBy({
       id: menuIdDto.id,
     });
 
-    // 메뉴가 없는 경우 예외처리
+    // Throw an error if the menu does not exist
     if (menu === null) {
       throw new BadRequestException({
         message: '메뉴가 존재하지 않습니다.',
       });
     }
 
-    // ID 키 값을 이용한 업데이트
+    // Update by ID key
     const result: UpdateResult = await this.menuRepository.update(
       { id: menuIdDto.id },
       { ...updateMenuDto },
     );
 
-    // Swagger 문서 적용을 위한 DTO 생성
+    // Build the DTO used for the Swagger docs
     const updateMenuResponseDto: UpdateMenuResponseDto =
       new UpdateMenuResponseDto();
     updateMenuResponseDto.message = { affectedRows: result.affected };
@@ -124,31 +124,31 @@ export class MenuService {
   }
 
   /**
-   * ID 키 값을 이용한 메뉴 삭제<br/>
-   * deletedAt 값만 업데이트
+   * Delete a menu by ID key<br/>
+   * Only updates the deletedAt value
    *
-   * @param {MenuIdDto} menuIdDto - 메뉴 ID 키 값
-   * @return {Promise<UpdateMenuResponseDto>} - 삭제 결과
+   * @param {MenuIdDto} menuIdDto - Menu ID key
+   * @return {Promise<UpdateMenuResponseDto>} - Delete result
    */
   async removeMenuById(menuIdDto: MenuIdDto): Promise<UpdateMenuResponseDto> {
-    // 메뉴 검색
+    // Look up the menu
     const menu: Menu = await this.menuRepository.findOneBy({
       id: menuIdDto.id,
     });
 
-    // 메뉴가 없는 경우 예외처리
+    // Throw an error if the menu does not exist
     if (menu === null) {
       throw new BadRequestException({
         message: '메뉴가 존재하지 않습니다.',
       });
     }
 
-    // ID 키 값을 이용한 메뉴 삭제
+    // Delete the menu by ID key
     const result: UpdateResult = await this.menuRepository.softDelete(
       menuIdDto.id,
     );
 
-    // Swagger 문서 적용을 위한 DTO 생성
+    // Build the DTO used for the Swagger docs
     const updateMenuResponseDto: UpdateMenuResponseDto =
       new UpdateMenuResponseDto();
     updateMenuResponseDto.message = { affectedRows: result.affected };
@@ -157,14 +157,14 @@ export class MenuService {
   }
 
   /**
-   * 삭제 메뉴 복구<br/>
-   * deletedAt 값을 null 값으로 업데이트
+   * Restore a deleted menu<br/>
+   * Updates deletedAt back to null
    *
-   * @param {MenuIdDto} menuIdDto - 메뉴 ID 키 값
+   * @param {MenuIdDto} menuIdDto - Menu ID key
    * @return {Promise<UpdateMenuResponseDto>}
    */
   async restoreMenuById(menuIdDto: MenuIdDto): Promise<UpdateMenuResponseDto> {
-    // 삭제 된 메뉴 검색
+    // Look up the deleted menu
     const menu: Menu = await this.menuRepository.findOne({
       where: {
         id: menuIdDto.id,
@@ -173,19 +173,19 @@ export class MenuService {
       withDeleted: true,
     });
 
-    // 메뉴가 없는 경우 예외처리
+    // Throw an error if the menu does not exist
     if (menu === null) {
       throw new BadRequestException({
         message: '메뉴가 존재하지 않습니다.',
       });
     }
 
-    // 삭제 된 메뉴 복구
+    // Restore the deleted menu
     const result: UpdateResult = await this.menuRepository.restore({
       id: menuIdDto.id,
     });
 
-    // Swagger 문서 적용을 위한 DTO 생성
+    // Build the DTO used for the Swagger docs
     const updateMenuResponseDto: UpdateMenuResponseDto =
       new UpdateMenuResponseDto();
     updateMenuResponseDto.message = { affectedRows: result.affected };
@@ -194,15 +194,15 @@ export class MenuService {
   }
 
   /**
-   * 해당 멤버의 메뉴 권한
+   * Menu authority for the given member
    *
-   * @param {MenuListByAuthorityDto} menuListByAuthorityDto - 멤버의 권한 메뉴를 가져오는 데 필요한 데이터
+   * @param {MenuListByAuthorityDto} menuListByAuthorityDto - Data required to fetch a member's authorized menus
    * @return {Promise<MenuListResponseDto>}
    */
   async getMenuListByAuthority(
     menuListByAuthorityDto: MenuListByAuthorityDto,
   ): Promise<MenuListResponseDto> {
-    // 권한이 있는 메뉴 리스트
+    // List of menus the member has authority over
     const menu: Menu[] = await this.menuRepository.find({
       select: {
         id: true,
@@ -224,12 +224,12 @@ export class MenuService {
       },
     });
 
-    // 불필요한 객체 삭제
+    // Remove fields we don't want to keep around
     menu.filter((item: Menu) => {
       return delete item?.deletedAt;
     });
 
-    // Swagger 문서 적용을 위한 DTO 생성
+    // Build the DTO used for the Swagger docs
     const menuListResponseDto: MenuListResponseDto = new MenuListResponseDto();
     menuListResponseDto.message = menu;
 

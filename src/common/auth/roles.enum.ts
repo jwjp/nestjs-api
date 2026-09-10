@@ -1,4 +1,4 @@
-// 권한 분류로 사용할 값
+// Values used to classify roles/authority
 export enum RolesEnum {
   admin = 'admin',
   user = 'user',

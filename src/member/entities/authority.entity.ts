@@ -17,44 +17,44 @@ import { Branch } from './branch.entity';
 @Index('SEARCH_BRANCH_MENU', ['memberId', 'branchId'])
 export class Authority {
   /**
-   * 권한ID 기본키<br/>
+   * Authority ID primary key<br/>
    * (Auto Increment)
    */
   @PrimaryGeneratedColumn()
   id: number;
 
   /**
-   * 지점ID 기본키
+   * Branch ID primary key
    * @example 1
    */
   @Column('integer', {
     nullable: false,
-    comment: '지점ID',
+    comment: 'Branch ID',
   })
   branchId: number;
 
   /**
-   * 메뉴ID 기본키
+   * Menu ID primary key
    * @example 1
    */
   @Column('integer', {
     nullable: false,
-    comment: '메뉴ID',
+    comment: 'Menu ID',
   })
   menuId: number;
 
   /**
-   * 멤버ID 기본키
+   * Member ID primary key
    * @example 1
    */
   @Column('integer', {
     nullable: false,
-    comment: '메뉴ID',
+    comment: 'Menu ID',
   })
   memberId: number;
 
   /**
-   * 생성일시
+   * Created timestamp
    * default: CURRENT_TIMESTAMP
    */
   @CreateDateColumn({
@@ -65,7 +65,7 @@ export class Authority {
   createdAt: Date;
 
   /**
-   * 수정일시
+   * Updated timestamp
    * default CURRENT_TIMESTAMP
    * On Update CURRENT_TIMESTAMP
    */
@@ -78,7 +78,7 @@ export class Authority {
   updatedAt: Date;
 
   /**
-   * 삭제일시
+   * Deleted timestamp
    */
   @DeleteDateColumn({
     type: 'timestamp',
@@ -87,19 +87,19 @@ export class Authority {
   })
   deletedAt: Date | null = null;
 
-  // 메뉴 로우 완전 삭제(hard delete) 할 경우 권한도 삭제
+  // If a menu row is hard deleted, its authority rows are deleted too
   @ManyToOne(() => Menu, {
     onDelete: 'CASCADE',
   })
   menu: Menu;
 
-  // 지잠 로우 완전 삭제(hard delete) 할 경우 권한도 삭제
+  // If a branch row is hard deleted, its authority rows are deleted too
   @ManyToOne(() => Branch, {
     onDelete: 'CASCADE',
   })
   branch: Branch;
 
-  // 멤버 로우 완전 삭제(hard delete) 할 경우 권한도 삭제
+  // If a member row is hard deleted, its authority rows are deleted too
   @ManyToOne(() => Member, {
     onDelete: 'CASCADE',
   })

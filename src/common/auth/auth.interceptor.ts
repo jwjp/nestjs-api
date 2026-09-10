@@ -16,12 +16,12 @@ export class AuthInterceptor implements NestInterceptor {
     const { method, url } = context.getArgByIndex(0); // IncomingMessage
     const { statusCode } = context.getArgByIndex(1); // ServerResponse
 
-    // 요청 처리 후 인터셉터
+    // Interceptor applied after the request is handled
     return next.handle().pipe(
-      // 응답 데이터 변경에 사용
+      // Used to transform the response data
       map((data) => {
-        // 컨트롤러 및 서비스에서 return 으로 들어오는 값은 data에 담기고
-        // 그 외에는 모두 아래 양식으로 응답 (에러 메시지는 AuthFilter 에서 응답)
+        // Values returned from controllers/services are captured in data,
+        // everything else is wrapped in the format below (error messages are handled by AuthFilter)
         const responseBody: ResponseDto = {
           result: true,
           statusCode: statusCode,

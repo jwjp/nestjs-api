@@ -22,18 +22,18 @@ async function bootstrap() {
         }),
       ),
       transports: [
-        // 콘솔 표시 정보
+        // Console output
         new winston.transports.Console({
           // level: silly < debug < verbose < http < info < warn < error
           level: process.env.NODE_ENV === 'prod' ? 'warn' : 'debug',
         }),
-        // 에러 로그
+        // Error log
         new winston.transports.File({
           filename: 'logs/error.log',
           level: 'error',
           format: winston.format.uncolorize(),
         }),
-        // 통합 로그
+        // Combined log
         new winston.transports.File({
           filename: 'logs/combined.log',
           level: 'debug',
@@ -43,20 +43,20 @@ async function bootstrap() {
     }),
   });
 
-  // HTTP 보안 설정
+  // HTTP security settings
   // https://github.com/helmetjs/helmet
   app.use(helmet());
 
-  // CORS 활성화
+  // Enable CORS
   // https://github.com/expressjs/cors
   app.enableCors();
 
-  // 프록시 신뢰 설정
+  // Trust the proxy
   app.set('trust proxy', true);
 
-  // 개발 환경에서만 Swagger 사용
+  // Only enable Swagger in non-production environments
   if (['local', 'dev'].includes(process.env.NODE_ENV)) {
-    // Swagger 페이지 보호
+    // Protect the Swagger docs page
     app.use(
       ['/docs', '/docs-json'],
       basicAuth({
@@ -67,7 +67,7 @@ async function bootstrap() {
       }),
     );
 
-    // Swagger 설정
+    // Swagger setup
     SwaggerModule.setup(
       'docs',
       app,
@@ -89,36 +89,36 @@ async function bootstrap() {
         customSiteTitle: 'NestJS APIs',
         customfavIcon: 'favicon.ico',
         swaggerOptions: {
-          // 새로고침 해도 Token 값 유지
+          // Keep the token after a page refresh
           persistAuthorization: true,
         },
       },
     );
   }
 
-  // 쿠키 사용
+  // Use cookies
   app.use(cookieParser());
 
   /**
-   * 요청 & 응답 생명주기
-   * 1. 미들웨어 (전역 > 모듈)
-   * 2. 가드 (전역 > 컨트롤러 > 라우터)
-   * 3. 인터셉터 (전역 > 컨트롤러 > 라우터)
-   * 4. 파이프 (전역 > 컨트롤러 > 라우터)
-   * 5. 컨트롤러 < > 서비스
-   * 6. 인터셉터 (라우터 > 컨트롤러 > 전역)
-   * 7. 예외 필터 (라우터 > 컨트롤러 > 전역)
+   * Request & response lifecycle
+   * 1. Middleware (global > module)
+   * 2. Guards (global > controller > route)
+   * 3. Interceptors (global > controller > route)
+   * 4. Pipes (global > controller > route)
+   * 5. Controller <> service
+   * 6. Interceptors (route > controller > global)
+   * 7. Exception filters (route > controller > global)
    */
 
-  // 1. 미들웨어 (전처리 작업 & 로그 기록)
+  // 1. Middleware (pre-processing & logging)
   app.use(globalMiddleware);
 
-  // 2. 가드 (권한 인증)
-  // 3. 인터셉터 (요청 전/후 데이터 수정)
-  // 4. 파이프 (값 검증)
+  // 2. Guards (authorization)
+  // 3. Interceptors (modify data before/after the request)
+  // 4. Pipes (value validation)
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
 
-  // 5. 예외 필터 (에러 처리 & 에러 로그 기록)
+  // 5. Exception filters (error handling & error logging)
   app.useGlobalFilters(new AuthFilter(app.get(HttpAdapterHost)));
 
   await app.listen(3000);

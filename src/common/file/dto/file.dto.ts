@@ -17,19 +17,19 @@ import { FileStorageEnum } from '../file.enum';
 import { File } from '../entities/file.entity';
 
 /**
- * 파일 DTO
+ * File DTO
  */
 export class FileInsertDto {
   /**
-   * 지점 기본키
+   * Branch primary key
    */
   @IsNumber()
   @IsNotEmpty()
   branchId: number;
 
   /**
-   * 업로드 했을 때의 파일명<br/>
-   * 다운로드 하는 경우 이 파일명 사용 (별도 입력하지 않으면 기존 파일명 이용, 수정 가능)
+   * Filename at the time of upload<br/>
+   * Used as the download filename (falls back to the existing filename if not provided, editable)
    */
   @IsString({
     message: '파일명은 문자만 사용할 수 있습니다.',
@@ -40,8 +40,8 @@ export class FileInsertDto {
   originalname: string;
 
   /**
-   * 고유한 파일명<br/>
-   * 파일 불러올 때 사용 (randomUUID 등 고유값 함수 이용, 수정 불가)
+   * Unique filename<br/>
+   * Used to fetch the file (generated via randomUUID or similar, not editable)
    */
   @IsString({
     message: '고유 파일명은 문자만 사용할 수 있습니다.',
@@ -52,7 +52,7 @@ export class FileInsertDto {
   filename: string;
 
   /**
-   * 파일의 MimeType
+   * File MimeType
    */
   @IsMimeType({
     message: 'MimeType 형태의 값이어야 합니다.',
@@ -60,7 +60,7 @@ export class FileInsertDto {
   mimetype: string;
 
   /**
-   * 파일 사이즈(byte)
+   * File size (bytes)
    */
   @IsNumber(
     {
@@ -77,7 +77,7 @@ export class FileInsertDto {
   size: number;
 
   /**
-   * 스토리지 타입 (s3, disk)
+   * Storage type (s3, disk)
    * @example 's3'
    */
   @IsEnum(FileStorageEnum, {
@@ -86,7 +86,7 @@ export class FileInsertDto {
   storage: FileStorageEnum;
 
   /**
-   * 파일이 저장 된 경로
+   * Path the file is stored at
    * @example 'files/{branchId}/{date(YYYYMMDD)}'
    */
   @IsString({
@@ -98,7 +98,7 @@ export class FileInsertDto {
   path: string;
 
   /**
-   * 파일 액세스 URL
+   * File access URL
    * @example 'https://{AWS_S3_BUCKET}.s3.{AWS_S3_REGION}.amazonaws.com/{Key}'
    */
   @IsUrl(
@@ -114,7 +114,7 @@ export class FileInsertDto {
   url: string;
 
   /**
-   * 마지막 액세스 일시
+   * Last accessed timestamp
    */
   @IsDate()
   @IsOptional()
@@ -123,13 +123,13 @@ export class FileInsertDto {
 
 export class UploadS3FilesDto {
   /**
-   * 파일
+   * Files
    */
   @ApiProperty({ type: Array, format: 'binary', required: true })
   files: Array<Express.Multer.File>;
 
   /**
-   * 지점ID 기본키 값
+   * Branch ID primary key value
    */
   @IsNumber(
     {
@@ -188,7 +188,7 @@ export class S3FileListPageDto {
   branch: number;
 
   /**
-   * 페이지 번호 (최소 1 이상)
+   * Page number (minimum 1)
    * @example 1
    */
   @IsOptional()
@@ -208,7 +208,7 @@ export class S3FileListPageDto {
   page?: number = 1;
 
   /**
-   * 페이지 당 표시 할 개수 (최소 1, 최대 100)
+   * Items per page (minimum 1, maximum 100)
    * @example 10
    */
   @IsOptional()
@@ -255,7 +255,7 @@ export class getS3FileByUniqueKey {
 }
 
 /**
- * (Swagger) 파일 리스트 결과, 인터셉터 응답 포함
+ * (Swagger) File list result, including the interceptor response
  */
 export class FileListResponseDto extends PartialType(ResponseDto) {
   result: boolean;

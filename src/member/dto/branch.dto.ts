@@ -14,12 +14,12 @@ import { Branch } from '../entities/branch.entity';
 import { ResponseDto } from '../../common/auth/response.dto';
 
 /**
- * 지점 엔티티 기본 DTO
+ * Base DTO for the Branch entity
  */
 export class BranchDto {
   /**
-   * 지점명
-   * @example '수원 지점'
+   * Branch name
+   * @example 'Suwon Branch'
    */
   @IsString({
     message: '지점명은 문자만 사용할 수 있습니다.',
@@ -33,8 +33,8 @@ export class BranchDto {
   name: string;
 
   /**
-   * 메인 표시명
-   * @example '서울 강남점'
+   * Main display name
+   * @example 'Seoul Gangnam Branch'
    */
   @IsString({
     message: '메인 표시명은 문자만 사용할 수 있습니다.',
@@ -48,7 +48,7 @@ export class BranchDto {
   title: string;
 
   /**
-   * 홈페이지 URL
+   * Homepage URL
    * @example https://docs.nestjs.com
    */
   @IsString({
@@ -73,7 +73,7 @@ export class BranchDto {
   url: string;
 
   /**
-   * 지점 표시 순서
+   * Branch display order
    * @example 1
    */
   @IsInt({
@@ -82,7 +82,7 @@ export class BranchDto {
   seq: number;
 
   /**
-   * 노출 여부
+   * Whether it is shown
    * @example true | false
    */
   @IsBoolean({
@@ -92,12 +92,12 @@ export class BranchDto {
 }
 
 /**
- * 지점 생성 DTO
+ * DTO for creating a branch
  */
 export class CreateBranchDto extends BranchDto {}
 
 /**
- * (Swagger) 지점 생성 결과, 인터셉터 응답 포함
+ * (Swagger) Branch creation result, including the interceptor response
  */
 export class CreateBranchResponseDto extends PartialType(ResponseDto) {
   result: boolean;
@@ -108,7 +108,7 @@ export class CreateBranchResponseDto extends PartialType(ResponseDto) {
 }
 
 /**
- * (Swagger) 지점 검색 결과, 인터셉터 응답 포함
+ * (Swagger) Branch search result, including the interceptor response
  */
 export class GetBranchResponseDto extends PartialType(ResponseDto) {
   result: boolean;
@@ -119,12 +119,12 @@ export class GetBranchResponseDto extends PartialType(ResponseDto) {
 }
 
 /**
- * 지점 업데이트
+ * Branch update
  */
 export class UpdateBranchDto extends PartialType(BranchDto) {}
 
 /**
- * (Swagger) 지점 업데이트 결과, 인터셉터 응답 포함
+ * (Swagger) Branch update result, including the interceptor response
  */
 export class UpdateBranchResponseDto extends PartialType(ResponseDto) {
   result: boolean;
@@ -135,11 +135,11 @@ export class UpdateBranchResponseDto extends PartialType(ResponseDto) {
 }
 
 /**
- * 멤버 지점 권한 요청 DTO
+ * DTO for a member's branch authority request
  */
 export class BranchListByAuthorityDto {
   /**
-   * 멤버ID
+   * Member ID
    * @example 1
    */
   @IsNumber(
@@ -158,7 +158,7 @@ export class BranchListByAuthorityDto {
 }
 
 /**
- * 지점 권한 중 필요 정보
+ * Fields needed from the branch authority
  */
 class BranchListResponse extends PickType(Branch, [
   'id',
@@ -170,7 +170,7 @@ class BranchListResponse extends PickType(Branch, [
 ]) {}
 
 /**
- * (Swagger) 멤버 지점 권한 요청 결과, 인터셉터 응답 포함
+ * (Swagger) Member branch authority request result, including the interceptor response
  */
 export class BranchListResponseDto extends PartialType(ResponseDto) {
   result: boolean;
@@ -181,11 +181,11 @@ export class BranchListResponseDto extends PartialType(ResponseDto) {
 }
 
 /**
- * 지점 ID 키 값 조회 DTO
+ * DTO for looking up a branch by ID
  */
 export class BranchIdDto {
   /**
-   * 지점ID
+   * Branch ID
    * @example 1
    */
   @IsNumberString(

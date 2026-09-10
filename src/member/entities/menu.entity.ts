@@ -13,47 +13,47 @@ import { ApiHideProperty } from '@nestjs/swagger';
 @Entity()
 export class Menu {
   /**
-   * 메뉴ID 기본키<br/>
+   * Menu ID primary key<br/>
    * (Auto Increment)
    */
   @PrimaryGeneratedColumn()
   id: number;
 
   /**
-   * 메뉴명
-   * @example 지점관리
+   * Menu name
+   * @example Branch Management
    */
   @Column('varchar', {
     length: 20,
     nullable: false,
-    comment: '메뉴명',
+    comment: 'Menu name',
   })
   title: string;
 
   /**
-   * 링크 주소
+   * Link address
    * @example /branch
    */
   @Column('varchar', {
     length: 20,
     nullable: false,
-    comment: '링크 주소',
+    comment: 'Link address',
   })
   link: string;
 
   /**
-   * 메뉴 순서
+   * Menu order
    * @example 1
    */
   @Column('integer', {
     nullable: false,
     default: 99,
-    comment: '메뉴 순서',
+    comment: 'Menu order',
   })
   seq: number;
 
   /**
-   * 생성일시
+   * Created timestamp
    * default: CURRENT_TIMESTAMP
    */
   @CreateDateColumn({
@@ -64,7 +64,7 @@ export class Menu {
   createdAt: Date;
 
   /**
-   * 수정일시
+   * Updated timestamp
    * default CURRENT_TIMESTAMP
    * On Update CURRENT_TIMESTAMP
    */
@@ -77,7 +77,7 @@ export class Menu {
   updatedAt: Date;
 
   /**
-   * 삭제일시
+   * Deleted timestamp
    */
   @DeleteDateColumn({
     type: 'timestamp',

@@ -71,9 +71,9 @@ export class MemberService {
   ) {}
 
   /**
-   * 회원가입
+   * Sign up
    *
-   * @param {SignUpDto} signUpDto - 회원가입에 필요한 데이터
+   * @param {SignUpDto} signUpDto - Data required to sign up
    * @return {Promise<SignUpResponseDto>}
    */
   async signUp(signUpDto: SignUpDto): Promise<SignUpResponseDto> {
@@ -83,23 +83,23 @@ export class MemberService {
     const queryRunner: QueryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
 
-    // 트랜잭션 시작
+    // Start the transaction
     await queryRunner.startTransaction();
 
     try {
-      // 멤버 추가
+      // Insert the member
       const createdMember: SignUpDto & Member = await queryRunner.manager.save(
         Member,
         signUpDto,
       );
 
-      // 사용하지 않는 객체 제거
+      // Remove the field we don't want to keep around
       delete createdMember.password;
 
-      // 권한 배열 생성 (데이터 검증 및 insert 배열)
+      // Build the authority array (for validation and insertion)
       const authority: AuthorityDto[] = [];
 
-      // 지점은 있는데 메뉴가 없거나, 메뉴는 있는데 지점이 없는 경우
+      // If branches were given without menus, or menus without branches
       if (
         (branchIds.length && !menuIds.length) ||
         (!branchIds.length && menuIds.length)
@@ -109,10 +109,10 @@ export class MemberService {
         });
       }
 
-      // 권한 배열 데이터 추가
+      // Populate the authority array
       for (const i in branchIds) {
         for (const j in menuIds) {
-          // 데이터 검증 및 insert 배열
+          // Entries for validation and insertion
           authority.push({
             branchId: branchIds[i],
             menuId: menuIds[j],
@@ -121,12 +121,12 @@ export class MemberService {
         }
       }
 
-      // 권한 배열 데이터 검증을 위한 인스턴스화
+      // Instantiate for authority array validation
       const authorityInstance = plainToInstance(AuthorityDto, authority, {
         excludeExtraneousValues: true,
       });
 
-      // 권한 배열 데이터 검증
+      // Validate the authority array
       for (const auth of authorityInstance) {
         const { constraints } = (await validate(auth)).pop() || {};
         if (constraints) {
@@ -136,45 +136,45 @@ export class MemberService {
         }
       }
 
-      // 삭제되지 않은 지점 수
+      // Count of branches that are not deleted
       const branchIdCount: number = await queryRunner.manager.countBy(Branch, {
         id: In(branchIds),
       });
 
-      // 삭제되었거나 존재하지 않는 지점 ID 값이 있다면 예외처리
+      // Throw an error if any branch ID is deleted or does not exist
       if (branchIdCount !== branchIds.length) {
         throw new BadRequestException({
           message: '삭제되었거나 존재하지 않는 지점을 선택하였습니다.',
         });
       }
 
-      // 삭제되지 않은 메뉴 수
+      // Count of menus that are not deleted
       const menuIdCount: number = await queryRunner.manager.countBy(Menu, {
         id: In(menuIds),
       });
 
-      // 삭제되었거나 존재하지 않는 지점 ID 값이 있다면 예외처리
+      // Throw an error if any menu ID is deleted or does not exist
       if (menuIdCount !== menuIds.length) {
         throw new BadRequestException({
           message: '삭제되었거나 존재하지 않는 메뉴를 선택하였습니다.',
         });
       }
 
-      // 권한 추가
+      // Insert the authority rows
       if (authority.length) {
         await queryRunner.manager.insert(Authority, authority);
       }
 
-      // 트랜잭션 커밋
+      // Commit the transaction
       await queryRunner.commitTransaction();
 
-      // Swagger 문서 적용을 위한 DTO 생성
+      // Build the DTO used for the Swagger docs
       const signUpResponseDto: SignUpResponseDto = new SignUpResponseDto();
       signUpResponseDto.message = createdMember;
 
       return signUpResponseDto;
     } catch (err) {
-      // 트랜잭션 롤백
+      // Roll back the transaction
       await queryRunner.rollbackTransaction();
 
       if (err instanceof BadRequestException) {
@@ -188,13 +188,13 @@ export class MemberService {
         message: err.message,
       });
     } finally {
-      // DB커넥션 릴리즈
+      // Release the DB connection
       await queryRunner.release();
     }
   }
 
   /**
-   * 이메일 검증 토큰 발송
+   * Send the email verification token
    *
    * @param {SendValidationDto} sendValidationDto
    * @param {Request} request
@@ -204,7 +204,7 @@ export class MemberService {
     sendValidationDto: SendValidationDto,
     request: Request,
   ): Promise<SendValidationResponseDto> {
-    // 멤버 검색
+    // Look up the member
     const member: Member = await this.memberRepository.findOne({
       select: { id: true },
       where: {
@@ -213,14 +213,14 @@ export class MemberService {
       },
     });
 
-    // 멤버가 없는 경우
+    // If the member does not exist
     if (!member) {
       throw new BadRequestException({
         message: '멤버가 삭제되었거나 존재하지 않습니다.',
       });
     }
 
-    // jwt 토큰 발급
+    // Issue the JWT token
     const validationToken = await this.jwtService.signAsync(
       { id: member.id },
       {
@@ -240,7 +240,7 @@ export class MemberService {
         'Thanks!',
     );
 
-    // Swagger 문서 적용을 위한 DTO 생성
+    // Build the DTO used for the Swagger docs
     const sendValidationResponseDto: SendValidationResponseDto =
       new SendValidationResponseDto();
     sendValidationResponseDto.message = emailResult;
@@ -249,7 +249,7 @@ export class MemberService {
   }
 
   /**
-   * 이메일 검증
+   * Verify the email
    *
    * @param {EmailValidateDto} emailValidateDto
    * @return {Promise<EmailValidateResponseDto>}
@@ -257,7 +257,7 @@ export class MemberService {
   async emailValidate(
     emailValidateDto: EmailValidateDto,
   ): Promise<EmailValidateResponseDto> {
-    // 토큰 정보
+    // Token payload
     const validationTokenPayload = await this.jwtService.verifyAsync(
       emailValidateDto.token,
       {
@@ -267,20 +267,20 @@ export class MemberService {
       },
     );
 
-    // 토큰이 만료 된 경우
+    // If the token has expired
     if (validationTokenPayload.exp < Date.now() / 1000) {
       throw new UnauthorizedException({
         message: '토큰이 만료되었습니다. 다시 시도해주세요.',
       });
     }
 
-    // 이메일 검증 완료
+    // Complete the email verification
     const updateResult: UpdateResult = await this.memberRepository.update(
       { id: validationTokenPayload.id },
       { role: RolesEnum.admin, emailValidateAt: new Date() },
     );
 
-    // Swagger 문서 적용을 위한 DTO 생성
+    // Build the DTO used for the Swagger docs
     const emailValidateResponseDto: EmailValidateResponseDto =
       new EmailValidateResponseDto();
     emailValidateResponseDto.message = { affectedRows: updateResult.affected };
@@ -289,40 +289,40 @@ export class MemberService {
   }
 
   /**
-   * 로그인
+   * Log in
    *
-   * @param {LoginDto} loginDto - 로그인에 필요한 데이터
-   * @return {Promise<LoginResponseDto>} - 토큰 발급
+   * @param {LoginDto} loginDto - Data required to log in
+   * @return {Promise<LoginResponseDto>} - Issues tokens
    */
   async login(loginDto: LoginDto): Promise<LoginResponseDto> {
-    // 멤버 검색
+    // Look up the member
     const member: Member = await this.memberRepository.findOne({
       select: { id: true, username: true, role: true, password: true },
       where: { loginId: loginDto.loginId },
       withDeleted: false,
     });
 
-    // 멤버가 없는 경우 예외처리
+    // Throw an error if the member does not exist
     if (member === null) {
       throw new BadRequestException({
         message: '멤버가 존재하지 않습니다.',
       });
     }
 
-    // 입력한 비밀번호와 실제 비밀번호 비교
+    // Compare the given password against the stored one
     const passwordCompare: boolean = await bcrypt.compare(
       loginDto.password,
       member.password,
     );
 
-    // 비밀번호가 일치하지 않으면 예외처리
+    // Throw an error if the password does not match
     if (!passwordCompare) {
       throw new UnauthorizedException({
         message: '패스워드가 일치하지 않습니다.',
       });
     }
 
-    // id, username, role 값을 담아서 jwt 토큰 발급
+    // Issue a JWT token carrying id, username, and role
     const accessToken = await this.jwtService.signAsync(
       {
         id: member.id,
@@ -335,7 +335,7 @@ export class MemberService {
       },
     );
 
-    // 액세스 토큰 재발급을 하기 위한 리프레시 토큰
+    // Refresh token used to reissue the access token
     const refreshToken = await this.jwtService.signAsync(
       {},
       {
@@ -344,10 +344,10 @@ export class MemberService {
       },
     );
 
-    // 리프레시 토큰 업데이트
+    // Update the stored refresh token
     await this.memberRepository.update({ id: member.id }, { refreshToken });
 
-    // Swagger 문서 적용을 위한 DTO 생성
+    // Build the DTO used for the Swagger docs
     const loginResponseDto: LoginResponseDto = new LoginResponseDto();
     loginResponseDto.message = { accessToken, refreshToken };
 
@@ -355,16 +355,16 @@ export class MemberService {
   }
 
   /**
-   * 액세스 토큰 재발급 요청<br/>
-   * 리프레시 토큰이 유효한 경우에 재발급
+   * Request an access token refresh<br/>
+   * Refreshed only if the refresh token is valid
    *
-   * @param {MemberRefreshDto} memberRefreshDto - 멤버 ID 키 값
-   * @return {Promise<MemberRefreshResponseDto>} - 액세스 토큰 재발급
+   * @param {MemberRefreshDto} memberRefreshDto - Member ID key
+   * @return {Promise<MemberRefreshResponseDto>} - Access token refresh
    */
   async refresh(
     memberRefreshDto: MemberRefreshDto,
   ): Promise<MemberRefreshResponseDto> {
-    // 멤버 검색
+    // Look up the member
     const member = await this.memberRepository.findOne({
       select: { id: true, username: true, role: true, refreshToken: true },
       where: {
@@ -372,28 +372,28 @@ export class MemberService {
       },
     });
 
-    // 멤버가 없는 경우
+    // If the member does not exist
     if (!member) {
       throw new BadRequestException({
         message: '멤버가 삭제되었거나 존재하지 않습니다.',
       });
     }
 
-    // 멤버에 리프레시 토큰이 없는 경우
+    // If the member has no refresh token
     if (!member.refreshToken) {
       throw new UnauthorizedException({
         message: '리프레시 토큰이 존재하지 않습니다. 다시 로그인해주세요.',
       });
     }
 
-    // 리프레시 토큰이 일치하지 않는 경우
+    // If the refresh token does not match
     if (member.refreshToken !== memberRefreshDto.refreshToken) {
       throw new UnauthorizedException({
         message: '리프레시 토큰이 일치하지 않습니다.',
       });
     }
 
-    // 리프레시 토큰 정보
+    // Refresh token payload
     const refreshTokenPayload = await this.jwtService.verifyAsync(
       member.refreshToken,
       {
@@ -401,14 +401,14 @@ export class MemberService {
       },
     );
 
-    // 리프레시 토큰이 만료 된 경우
+    // If the refresh token has expired
     if (refreshTokenPayload.exp < Date.now() / 1000) {
       throw new UnauthorizedException({
         message: '리프레시 토큰이 만료되었습니다. 다시 로그인해주세요.',
       });
     }
 
-    // 액세스 토큰 재발급
+    // Reissue the access token
     const newAccessToken = await this.jwtService.signAsync(
       {
         id: member.id,
@@ -421,7 +421,7 @@ export class MemberService {
       },
     );
 
-    // Swagger 문서 적용을 위한 DTO 생성
+    // Build the DTO used for the Swagger docs
     const memberRefreshResponseDto: MemberRefreshResponseDto =
       new MemberRefreshResponseDto();
     memberRefreshResponseDto.message = { accessToken: newAccessToken };
@@ -430,13 +430,13 @@ export class MemberService {
   }
 
   /**
-   * 아이디 중복체크 (삭제 포함)
+   * Check login ID duplicates (including deleted rows)
    *
-   * @param {ConfirmIdDto} confirmId - 중복체크에 필요한 데이터
-   * @return {Promise<ConfirmIdResponseDto>} - 중복 여부
+   * @param {ConfirmIdDto} confirmId - Data required for the duplicate check
+   * @return {Promise<ConfirmIdResponseDto>} - Whether it is duplicated
    */
   async idDuplicatedId(confirmId: ConfirmIdDto): Promise<ConfirmIdResponseDto> {
-    // 삭제한 데이터 포함 아이디 검색
+    // Look up the login ID, including deleted rows
     const idCount: number = await this.memberRepository.count({
       where: {
         loginId: confirmId.loginId,
@@ -444,7 +444,7 @@ export class MemberService {
       withDeleted: true,
     });
 
-    // Swagger 문서 적용을 위한 DTO 생성
+    // Build the DTO used for the Swagger docs
     const confirmIdResponseDto: ConfirmIdResponseDto =
       new ConfirmIdResponseDto();
     confirmIdResponseDto.message = { isDuplicated: !!idCount };
@@ -453,15 +453,15 @@ export class MemberService {
   }
 
   /**
-   * 이메일 중복체크 (삭제 포함)
+   * Check email duplicates (including deleted rows)
    *
-   * @param {ConfirmEmailDto} confirmEmail - 중복체크에 필요한 데이터
-   * @return {Promise<ConfirmEmailResponseDto>} - 중복 여부
+   * @param {ConfirmEmailDto} confirmEmail - Data required for the duplicate check
+   * @return {Promise<ConfirmEmailResponseDto>} - Whether it is duplicated
    */
   async idDuplicatedEmail(
     confirmEmail: ConfirmEmailDto,
   ): Promise<ConfirmEmailResponseDto> {
-    // 삭제한 데이터 포함 이메일 검색
+    // Look up the email, including deleted rows
     const emailCount: number = await this.memberRepository.count({
       where: {
         email: confirmEmail.email,
@@ -469,7 +469,7 @@ export class MemberService {
       withDeleted: true,
     });
 
-    // Swagger 문서 적용을 위한 DTO 생성
+    // Build the DTO used for the Swagger docs
     const confirmEmailResponseDto: ConfirmEmailResponseDto =
       new ConfirmEmailResponseDto();
     confirmEmailResponseDto.message = { isDuplicated: !!emailCount };
@@ -478,14 +478,14 @@ export class MemberService {
   }
 
   /**
-   * 멤버 정보
-   * 메뉴 및 지점 권한 정보도 포함
+   * Member info
+   * Also includes menu and branch authority info
    *
-   * @param {MemberIdDto} memberIdDto - 멤버 ID 키 값
+   * @param {MemberIdDto} memberIdDto - Member ID key
    * @return {Promise<MemberResponseDto>}
    */
   async getMemberById(memberIdDto: MemberIdDto): Promise<MemberResponseDto> {
-    // 멤버 검색
+    // Look up the member
     const member = await this.memberRepository.findOne({
       select: {
         authority: {
@@ -506,19 +506,19 @@ export class MemberService {
         },
       },
       where: { id: memberIdDto.id },
-      // 메뉴 및 지점 권한 정보
+      // Menu and branch authority info
       relations: { authority: { menu: true, branch: true } },
       withDeleted: true,
     });
 
-    // 멤버가 없는 경우 예외처리
+    // Throw an error if the member does not exist
     if (member === null) {
       throw new BadRequestException({
         message: '멤버가 존재하지 않습니다.',
       });
     }
 
-    // Swagger 문서 적용을 위한 DTO 생성
+    // Build the DTO used for the Swagger docs
     const memberResponseDto: MemberResponseDto = new MemberResponseDto();
     memberResponseDto.message = member;
 
@@ -526,14 +526,14 @@ export class MemberService {
   }
 
   /**
-   * ID 키 값을 이용한 멤버 정보 (쿼리빌더 사용)
-   * 메뉴 및 지점 권한 정보도 포함
+   * Member info by ID key (using the query builder)
+   * Also includes menu and branch authority info
    *
-   * @param {MemberIdDto} memberIdDto - 멤버 ID 키 값
+   * @param {MemberIdDto} memberIdDto - Member ID key
    * @return {Promise<Member[]>}
    */
   async getMemberByIdUsingBuilder(memberIdDto: MemberIdDto): Promise<Member[]> {
-    // 멤버 검색 (1개 행이 1개의 객체로 각각 나옴)
+    // Look up the member (each row comes back as its own object)
     const member: Member[] = await this.memberRepository
       .createQueryBuilder('member')
       .leftJoin(Authority, 'auth', 'member.id = auth.memberId')
@@ -553,7 +553,7 @@ export class MemberService {
       .withDeleted()
       .getRawMany();
 
-    // 검색 된 멤버가 없는 경우 예외처리
+    // Throw an error if no member was found
     if (member.length === 0) {
       throw new BadRequestException({
         message: '멤버가 존재하지 않습니다.',
@@ -564,30 +564,30 @@ export class MemberService {
   }
 
   /**
-   * 삭제되지 않은 멤버 수
+   * Count of members not deleted
    *
    * @return {Promise<MemberCountResponseDto>}
    */
   async getMemberCount(): Promise<MemberCountResponseDto> {
-    // 삭제되지 않은 멤버 수
+    // Count of members not deleted
     const memberCount: number = await this.memberRepository.count();
 
-    // Swagger 문서 적용을 위한 DTO 생성
+    // Build the DTO used for the Swagger docs
     const memberCountResponseDto: MemberCountResponseDto =
       new MemberCountResponseDto();
     memberCountResponseDto.message = { count: memberCount };
 
-    // 삭제되지 않은 멤버 수
+    // Count of members not deleted
     return memberCountResponseDto;
   }
 
   /**
-   * 삭제 된 멤버 수
+   * Count of deleted members
    *
    * @return {Promise<MemberCountResponseDto>}
    */
   async getDeletedMemberCount(): Promise<MemberCountResponseDto> {
-    // 삭제 된 멤버 수
+    // Count of deleted members
     const memberCount = await this.memberRepository.count({
       where: {
         deletedAt: Not(IsNull()),
@@ -595,36 +595,36 @@ export class MemberService {
       withDeleted: true,
     });
 
-    // Swagger 문서 적용을 위한 DTO 생성
+    // Build the DTO used for the Swagger docs
     const memberCountResponseDto: MemberCountResponseDto =
       new MemberCountResponseDto();
     memberCountResponseDto.message = { count: memberCount };
 
-    // 삭제 된 멤버 수
+    // Count of deleted members
     return memberCountResponseDto;
   }
 
   /**
-   * 페이지당 멤버 리스트 (삭제 멤버 제외)
+   * Paginated member list (excluding deleted members)
    *
-   * @param {MemberListPageDto} memberListPageDto - 페이지 번호 및 페이지당 표시 할 멤버 수
+   * @param {MemberListPageDto} memberListPageDto - Page number and items per page
    * @return {Promise<MemberListResponseDto>}
    */
   async getMemberListPerPage(
     memberListPageDto: MemberListPageDto,
   ): Promise<MemberListResponseDto> {
-    // {offset}번째 부터
+    // Starting from the {offset}th item
     const offset = memberListPageDto.perPage * (memberListPageDto.page - 1);
 
-    // {limit}번째 까지
-    // 멤버 리스트
+    // Up to the {limit}th item
+    // Member list
     const memberList: Member[] = await this.memberRepository.find({
       withDeleted: false,
       skip: offset,
       take: memberListPageDto.perPage,
     });
 
-    // Swagger 문서 적용을 위한 DTO 생성
+    // Build the DTO used for the Swagger docs
     const memberListResponseDto: MemberListResponseDto =
       new MemberListResponseDto();
     memberListResponseDto.message = memberList;
@@ -633,19 +633,19 @@ export class MemberService {
   }
 
   /**
-   * 페이지당 삭제 멤버 리스트
+   * Paginated list of deleted members
    *
-   * @param {MemberListPageDto} memberListPageDto - 페이지 번호 및 페이지당 표시 할 멤버 수
+   * @param {MemberListPageDto} memberListPageDto - Page number and items per page
    * @return {Promise<MemberListResponseDto>}
    */
   async getDeletedMemberListPerPage(
     memberListPageDto: MemberListPageDto,
   ): Promise<MemberListResponseDto> {
-    // {offset}번째 부터
+    // Starting from the {offset}th item
     const offset = memberListPageDto.perPage * (memberListPageDto.page - 1);
 
-    // {limit}번째 까지
-    // 멤버 리스트
+    // Up to the {limit}th item
+    // Member list
     const memberList: Member[] = await this.memberRepository.find({
       where: {
         deletedAt: Not(IsNull()),
@@ -655,7 +655,7 @@ export class MemberService {
       take: memberListPageDto.perPage,
     });
 
-    // Swagger 문서 적용을 위한 DTO 생성
+    // Build the DTO used for the Swagger docs
     const memberListResponseDto: MemberListResponseDto =
       new MemberListResponseDto();
     memberListResponseDto.message = memberList;
@@ -664,30 +664,30 @@ export class MemberService {
   }
 
   /**
-   * ID 키 값을 이용한 멤버 업데이트
+   * Update a member by ID key
    *
-   * @param {MemberIdDto} memberIdDto - 멤버 ID 키 값
-   * @param {UpdateMemberDto} updateMemberDto - 업데이트에 필요한 데이터
-   * @return {Promise<UpdateMemberResponseDto>} - 업데이트 결과
+   * @param {MemberIdDto} memberIdDto - Member ID key
+   * @param {UpdateMemberDto} updateMemberDto - Data required for the update
+   * @return {Promise<UpdateMemberResponseDto>} - Update result
    */
   async updateMemberById(
     memberIdDto: MemberIdDto,
     updateMemberDto: UpdateMemberDto,
   ): Promise<UpdateMemberResponseDto> {
-    // 업데이트 데이터가 넘어오지 않으면 예외처리
+    // Throw an error if no update data was provided
     if (Object.keys(updateMemberDto).length === 0) {
       throw new BadRequestException({
         message: '요청 데이터가 없습니다.',
       });
     }
 
-    // 멤버 검색
+    // Look up the member
     const member: Member = await this.memberRepository.findOne({
       where: { id: memberIdDto.id },
       withDeleted: true,
     });
 
-    // 멤버가 없는 경우 예외처리
+    // Throw an error if the member does not exist
     if (member === null) {
       throw new BadRequestException({
         message: '멤버가 존재하지 않습니다.',
@@ -707,22 +707,22 @@ export class MemberService {
       );
     }
 
-    // 업데이트 엔티티에 포함되지 않는 객체 삭제
+    // Remove fields not part of the update entity
     delete updateMemberDto.branchIds;
     delete updateMemberDto.menuIds;
 
     const queryRunner: QueryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
 
-    // 트랜잭션 시작
+    // Start the transaction
     await queryRunner.startTransaction();
 
     try {
       if (shouldUpdateAuthority) {
-        // 권한 배열 생성 (데이터 검증 및 insert 배열)
+        // Build the authority array (for validation and insertion)
         const authority: AuthorityDto[] = [];
 
-        // 지점은 있는데 메뉴가 없거나, 메뉴는 있는데 지점이 없는 경우
+        // If branches were given without menus, or menus without branches
         if (
           (branchIds.length && !menuIds.length) ||
           (!branchIds.length && menuIds.length)
@@ -732,10 +732,10 @@ export class MemberService {
           });
         }
 
-        // 권한 배열 데이터 추가
+        // Populate the authority array
         for (const i in branchIds) {
           for (const j in menuIds) {
-            // 데이터 검증 및 insert 배열
+            // Entries for validation and insertion
             authority.push({
               branchId: branchIds[i],
               menuId: menuIds[j],
@@ -744,12 +744,12 @@ export class MemberService {
           }
         }
 
-        // 권한 배열 데이터 검증을 위한 인스턴스화
+        // Instantiate for authority array validation
         const authorityInstance = plainToInstance(AuthorityDto, authority, {
           excludeExtraneousValues: true,
         });
 
-        // 권한 배열 데이터 검증
+        // Validate the authority array
         for (const auth of authorityInstance) {
           const { constraints } = (await validate(auth)).pop() || {};
           if (constraints) {
@@ -759,7 +759,7 @@ export class MemberService {
           }
         }
 
-        // 삭제되지 않은 지점 수
+        // Count of branches that are not deleted
         const branchIdCount: number = await queryRunner.manager.countBy(
           Branch,
           {
@@ -767,49 +767,49 @@ export class MemberService {
           },
         );
 
-        // 삭제되었거나 존재하지 않는 지점 ID 값이 있다면 예외처리
+        // Throw an error if any branch ID is deleted or does not exist
         if (branchIdCount !== branchIds.length) {
           throw new BadRequestException({
             message: '삭제되었거나 존재하지 않는 지점을 선택하였습니다.',
           });
         }
 
-        // 삭제되지 않은 메뉴 수
+        // Count of menus that are not deleted
         const menuIdCount: number = await queryRunner.manager.countBy(Menu, {
           id: In(menuIds),
         });
 
-        // 삭제되었거나 존재하지 않는 지점 ID 값이 있다면 예외처리
+        // Throw an error if any menu ID is deleted or does not exist
         if (menuIdCount !== menuIds.length) {
           throw new BadRequestException({
             message: '삭제되었거나 존재하지 않는 메뉴를 선택하였습니다.',
           });
         }
 
-        // 기존 권한 삭제
+        // Remove the existing authority rows
         await queryRunner.manager.delete(Authority, {
           memberId: member.id,
         });
 
-        // 신규 권한 추가
+        // Insert the new authority rows
         if (authority.length) {
           await queryRunner.manager.insert(Authority, authority);
         }
       }
 
-      // deny 상태가 아니고 && 이메일을 변경하는 경우
+      // If not in the deny state && the email is being changed
       if (
         member.role !== RolesEnum.deny &&
         member.email !== updateMemberDto.email
       ) {
-        // 권한을 user 로 변경
+        // Downgrade the role to user
         updateMemberDto['role'] = RolesEnum.user;
 
-        // 이메일 재인증하도록 변경
+        // Require the email to be re-verified
         updateMemberDto['emailValidateAt'] = null;
       }
 
-      // 멤버 정보 수정
+      // Update the member info
       const result: UpdateResult = await queryRunner.manager.update(
         Member,
         {
@@ -818,17 +818,17 @@ export class MemberService {
         updateMemberDto,
       );
 
-      // 트랜잭션 커밋
+      // Commit the transaction
       await queryRunner.commitTransaction();
 
-      // Swagger 문서 적용을 위한 DTO 생성
+      // Build the DTO used for the Swagger docs
       const updateMemberResponseDto: UpdateMemberResponseDto =
         new UpdateMemberResponseDto();
       updateMemberResponseDto.message = { affectedRows: result.affected };
 
       return updateMemberResponseDto;
     } catch (err) {
-      // 트랜잭션 롤백
+      // Roll back the transaction
       await queryRunner.rollbackTransaction();
 
       if (err instanceof BadRequestException) {
@@ -842,41 +842,41 @@ export class MemberService {
         message: err.message,
       });
     } finally {
-      // DB커넥션 릴리즈
+      // Release the DB connection
       await queryRunner.release();
     }
   }
 
   /**
-   * ID 키 값을 이용한 멤버 삭제<br/>
-   * deletedAt 값만 업데이트
+   * Delete a member by ID key<br/>
+   * Only updates the deletedAt value
    *
-   * @param {MemberIdDto} memberIdDto - 멤버 ID 키 값
+   * @param {MemberIdDto} memberIdDto - Member ID key
    * @param {string} authorization
-   * @return {Promise<UpdateMemberResponseDto>} - 삭제 결과
+   * @return {Promise<UpdateMemberResponseDto>} - Delete result
    */
   async removeMemberById(
     memberIdDto: MemberIdDto,
     authorization: string,
   ): Promise<UpdateMemberResponseDto> {
-    // 멤버 검색
+    // Look up the member
     const member: Member = await this.memberRepository.findOneBy({
       id: memberIdDto.id,
     });
 
-    // 멤버가 없는 경우 예외처리
+    // Throw an error if the member does not exist
     if (member === null) {
       throw new BadRequestException({
         message: '멤버가 존재하지 않습니다.',
       });
     }
 
-    // 멤버 정보 수정 결과
+    // Result of the member info update
     let validationUpdateResult: UpdateResult;
 
-    // deny 상태가 아닌 경우에만 권한 변경
+    // Only change the role if not already in the deny state
     if (member.role !== RolesEnum.deny) {
-      // 멤버 정보 수정
+      // Update the member info
       validationUpdateResult = await this.memberRepository.update(
         { id: member.id },
         {
@@ -886,37 +886,37 @@ export class MemberService {
       );
     }
 
-    // 멤버 정보 수정 실패
+    // Member info update failed
     if (validationUpdateResult?.affected === 0) {
       throw new ServiceUnavailableException({
         message: '멤버 정보 수정에 실패했습니다.',
       });
     }
 
-    // ID 키 값을 이용한 멤버 삭제
+    // Delete the member by ID key
     const result: UpdateResult = await this.memberRepository.softDelete(
       memberIdDto.id,
     );
 
-    // 알림이 필요한 경우 사용
+    // Used when a notification is needed
     if (result.affected > 0) {
-      // JWT 토큰 타입과 코드 분리
+      // Split the JWT token type and value
       const [type, token] = authorization?.split(' ') ?? [];
       const jwtToken = type === 'Bearer' ? token : undefined;
 
-      // 서비스 요청한 멤버 정보(토큰 값 사용)
+      // Info of the member who made the request (from the token)
       const payload = await this.jwtService.verifyAsync(jwtToken, {
         secret: this.configService.get<string>('JWT_ACCESS_SECRET_KEY'),
       });
 
-      // 이메일 발송
+      // Send the email
       await this.emailService.sendEmail(
         'example@example.com',
         '[SAMPLE] Member removed in NestJS API',
         `${member.username}(${member.id}) member removed by ${payload?.username}(${payload?.id})`,
       );
 
-      // 슬랙 발송
+      // Send the Slack message
       await this.slackService.sendSlack(
         this.configService.get<string>('SLACK_WEBHOOK'),
         this.configService.get<string>('SLACK_CHANNEL'),
@@ -927,7 +927,7 @@ export class MemberService {
       );
     }
 
-    // Swagger 문서 적용을 위한 DTO 생성
+    // Build the DTO used for the Swagger docs
     const updateMemberResponseDto: UpdateMemberResponseDto =
       new UpdateMemberResponseDto();
     updateMemberResponseDto.message = { affectedRows: result.affected };
@@ -936,16 +936,16 @@ export class MemberService {
   }
 
   /**
-   * 삭제 멤버 복구<br/>
-   * deletedAt 값을 null 값으로 업데이트
+   * Restore a deleted member<br/>
+   * Updates deletedAt back to null
    *
-   * @param {MemberIdDto} memberIdDto - 멤버 ID 키 값
+   * @param {MemberIdDto} memberIdDto - Member ID key
    * @return {Promise<UpdateMemberResponseDto>}
    */
   async restoreMemberById(
     memberIdDto: MemberIdDto,
   ): Promise<UpdateMemberResponseDto> {
-    // 삭제 된 멤버 검색
+    // Look up the deleted member
     const member: Member = await this.memberRepository.findOne({
       where: {
         id: memberIdDto.id,
@@ -954,19 +954,19 @@ export class MemberService {
       withDeleted: true,
     });
 
-    // 멤버가 없는 경우 예외처리
+    // Throw an error if the member does not exist
     if (member === null) {
       throw new BadRequestException({
         message: '멤버가 존재하지 않습니다.',
       });
     }
 
-    // 멤버 정보 수정 결과
+    // Result of the member info update
     let validationUpdateResult: UpdateResult;
 
-    // deny 상태가 아닌 경우에만 권한 변경
+    // Only change the role if not already in the deny state
     if (member.role !== RolesEnum.deny) {
-      // 멤버 정보 수정
+      // Update the member info
       validationUpdateResult = await this.memberRepository.update(
         { id: member.id },
         {
@@ -976,19 +976,19 @@ export class MemberService {
       );
     }
 
-    // 멤버 정보 수정 실패
+    // Member info update failed
     if (validationUpdateResult?.affected === 0) {
       throw new ServiceUnavailableException({
         message: '멤버 정보 수정에 실패했습니다.',
       });
     }
 
-    // 삭제 멤버 복구
+    // Restore the deleted member
     const result = await this.memberRepository.restore({
       id: memberIdDto.id,
     });
 
-    // Swagger 문서 적용을 위한 DTO 생성
+    // Build the DTO used for the Swagger docs
     const updateMemberResponseDto: UpdateMemberResponseDto =
       new UpdateMemberResponseDto();
     updateMemberResponseDto.message = { affectedRows: result.affected };

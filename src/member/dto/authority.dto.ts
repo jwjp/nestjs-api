@@ -2,11 +2,11 @@ import { IsInt, IsNotEmpty } from 'class-validator';
 import { Expose } from 'class-transformer';
 
 /**
- * 멤버의 지점 및 메뉴 권한 기본 DTO
+ * Base DTO for a member's branch and menu authority
  */
 export class AuthorityDto {
   /**
-   * 지점ID 기본키
+   * Branch ID primary key
    * @example 1
    */
   @Expose()
@@ -19,7 +19,7 @@ export class AuthorityDto {
   branchId: number;
 
   /**
-   * 메뉴ID 기본키
+   * Menu ID primary key
    * @example 1
    */
   @Expose()
@@ -32,7 +32,7 @@ export class AuthorityDto {
   menuId: number;
 
   /**
-   * 멤버ID 기본키
+   * Member ID primary key
    * @example 1
    */
   @Expose()

@@ -4,8 +4,8 @@ import { Logger } from '@nestjs/common';
 
 export class TypeOrmLogger extends AbstractLogger {
   /**
-   * 로그 옵션 설정
-   * 입력 받지 않을 경우, 로그 출력되지 않음
+   * Log options
+   * If not provided, no logs are output
    *
    * @param {LoggerOptions} options
    */
@@ -14,8 +14,8 @@ export class TypeOrmLogger extends AbstractLogger {
   }
 
   /**
-   * 로그 출력에 사용할 로거
-   * WinstonModule 사용해서 생성한 로거
+   * Logger used to output logs
+   * Created using WinstonModule
    *
    * @private {Logger}
    */

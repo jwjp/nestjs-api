@@ -13,18 +13,18 @@ export class EmailService {
       service: 'Gmail',
       auth: {
         user: this.configService.get<string>('EMAIL_USERNAME'),
-        pass: this.configService.get<string>('EMAIL_PASSWORD'), // 앱 비밀번호
+        pass: this.configService.get<string>('EMAIL_PASSWORD'), // App password
       },
     });
   }
 
   /**
-   * 이메일 발송
+   * Send an email
    *
-   * @param {string} emailAddress - 이메일 주소
-   * @param {string} subject - 제목
-   * @param {string} message - 내용 (HTML 옵션으로 발송)
-   * @return {Promise<object>} - 이메일 발송 결과
+   * @param {string} emailAddress - Email address
+   * @param {string} subject - Subject
+   * @param {string} message - Body (sent as HTML)
+   * @return {Promise<object>} - Email send result
    */
   async sendEmail(
     emailAddress: string,
@@ -39,11 +39,11 @@ export class EmailService {
       });
 
       return {
-        accepted: result.accepted, // 발송 성공
-        rejected: result.rejected, // 발송 실패
-        messageTile: result.messageTime as number, // 발송 시간
-        messageSize: result.messageSize as number, // 메시지 사이즈
-        response: result.response, // 발송 결과 메시지
+        accepted: result.accepted, // Successfully sent
+        rejected: result.rejected, // Failed to send
+        messageTile: result.messageTime as number, // Send time
+        messageSize: result.messageSize as number, // Message size
+        response: result.response, // Send result message
       };
     } catch (err) {
       throw new ServiceUnavailableException({

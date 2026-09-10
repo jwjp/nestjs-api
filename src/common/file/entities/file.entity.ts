@@ -11,44 +11,44 @@ import { FileStorageEnum } from '../file.enum';
 @Entity()
 export class File {
   /**
-   * 파일 기본키<br/>
+   * File primary key<br/>
    * (Auto Increment)
    */
   @PrimaryGeneratedColumn()
   id: number;
 
   /**
-   * 지점 기본키
+   * Branch primary key
    */
   @Column('int', {
     nullable: false,
-    comment: '지점 기본키',
+    comment: 'Branch primary key',
   })
   branchId: number;
 
   /**
-   * 업로드 했을 때의 파일명<br/>
-   * 다운로드 하는 경우 이 파일명 사용 (수정 가능)
+   * Filename at the time of upload<br/>
+   * Used as the download filename (editable)
    */
   @Column('varchar', {
     nullable: false,
-    comment: '업로드 했을 때의 파일명',
+    comment: 'Filename at the time of upload',
   })
   originalname: string;
 
   /**
-   * 고유한 파일명<br/>
-   * 파일 불러올 때 사용 (randomUUID 등 고유값 함수 이용, 수정 불가)
+   * Unique filename<br/>
+   * Used to fetch the file (generated via randomUUID or similar, not editable)
    */
   @Column('varchar', {
     unique: true,
     nullable: false,
-    comment: '고유한 파일명',
+    comment: 'Unique filename',
   })
   filename: string;
 
   /**
-   * 파일의 MimeType
+   * File MimeType
    */
   @Column('varchar', {
     nullable: false,
@@ -57,58 +57,58 @@ export class File {
   mimetype: string;
 
   /**
-   * 파일 사이즈(byte)
+   * File size (bytes)
    */
   @Column('int', {
     nullable: false,
-    comment: '파일 사이즈(byte)',
+    comment: 'File size (bytes)',
   })
   size: number;
 
   /**
-   * 스토리지 타입 (s3, disk)
+   * Storage type (s3, disk)
    * @example 's3'
    */
   @Column('enum', {
     enum: FileStorageEnum,
     default: 's3',
     nullable: false,
-    comment: '스토리지 타입 (s3, disk)',
+    comment: 'Storage type (s3, disk)',
   })
   storage: FileStorageEnum;
 
   /**
-   * 파일이 저장 된 경로
+   * Path the file is stored at
    * @example 'files/{branchId}/{date(YYYYMMDD)}'
    */
   @Column('varchar', {
     nullable: false,
-    comment: '파일이 저장 된 경로',
+    comment: 'Path the file is stored at',
   })
   path: string;
 
   /**
-   * 파일 액세스 URL
+   * File access URL
    * @example 'https://{AWS_S3_BUCKET}.s3.{AWS_S3_REGION}.amazonaws.com/{Key}'
    */
   @Column('varchar', {
     nullable: false,
-    comment: '파일 접속 URL',
+    comment: 'File access URL',
   })
   url: string;
 
   /**
-   * 마지막 액세스 일시
+   * Last accessed timestamp
    */
   @Column('timestamp', {
     nullable: true,
     default: null,
-    comment: '마지막 액세스 일시',
+    comment: 'Last accessed timestamp',
   })
   lastAccessedAt: Date | null = null;
 
   /**
-   * 생성일시
+   * Created timestamp
    * default: CURRENT_TIMESTAMP
    */
   @CreateDateColumn({
@@ -119,7 +119,7 @@ export class File {
   createdAt: Date;
 
   /**
-   * 수정일시
+   * Updated timestamp
    * default CURRENT_TIMESTAMP
    * On Update CURRENT_TIMESTAMP
    */
@@ -132,7 +132,7 @@ export class File {
   updatedAt: Date;
 
   /**
-   * 삭제일시
+   * Deleted timestamp
    */
   @DeleteDateColumn({
     type: 'timestamp',

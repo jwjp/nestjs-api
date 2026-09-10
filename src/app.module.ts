@@ -25,21 +25,21 @@ import { AuthInterceptor } from './common/auth/auth.interceptor';
       envFilePath: `envs/.${process.env.NODE_ENV}.env`,
       validate: (config: Record<string, unknown>) => {
         const schema = Joi.object({
-          // 운영 환경 (노드 환경 변수)
+          // Runtime environment (Node environment variable)
           NODE_ENV: Joi.string()
             .valid('local', 'dev', 'prod')
             .default('dev')
             .required(),
-          // 타임존 (노드 환경 변수)
+          // Timezone (Node environment variable)
           TZ: Joi.string()
             .valid('Asia/Seoul', 'Asia/Hong_Kong', 'Asia/Tokyo', 'UTC')
             .default('Asia/Seoul')
             .required(),
 
-          // 루트 폴더명
+          // Root directory name
           ROOT_DIRECTORY: Joi.string().required(),
 
-          // 데이터베이스
+          // Database
           DB_HOST: Joi.string().required(),
           DB_PORT: Joi.number().required(),
           DB_SCHEMA: Joi.string().required(),
@@ -56,16 +56,16 @@ import { AuthInterceptor } from './common/auth/auth.interceptor';
           JWT_EMAIL_VALIDATION_SECRET_KEY: Joi.string().required(),
           JWT_EMAIL_VALIDATION_EXPIRES_TIME: Joi.string().required(),
 
-          // 슬랙
+          // Slack
           SLACK_CHANNEL: Joi.string().required(),
           SLACK_TOKEN: Joi.string().required(),
           SLACK_WEBHOOK: Joi.string().required(),
 
-          // 이메일 발송 계정
+          // Email sending account
           EMAIL_USERNAME: Joi.string().email().required(),
           EMAIL_PASSWORD: Joi.string().required(),
 
-          // 파일 업로드 경로
+          // File upload paths
           UPLOAD_DISK_PATH: Joi.string().required(),
           UPLOAD_S3_PATH: Joi.string().required(),
 
@@ -75,7 +75,7 @@ import { AuthInterceptor } from './common/auth/auth.interceptor';
           AWS_S3_BUCKET: Joi.string().required(),
           AWS_S3_REGION: Joi.string().required(),
 
-          // OpenAPI(Swagger) 문서 접속 계정
+          // OpenAPI (Swagger) docs credentials
           SWAGGER_USERNAME: Joi.string().required(),
           SWAGGER_PASSWORD: Joi.string().required(),
         });

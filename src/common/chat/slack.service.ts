@@ -5,19 +5,19 @@ import { HttpService } from '@nestjs/axios';
 @Injectable()
 export class SlackService {
   /**
-   * 생성자로 주입받아 사용할 경우, HttpModule 모듈 import 필요
+   * If injected via the constructor, the HttpModule module must be imported
    * @private {HttpService}
    */
   private readonly httpService: HttpService = new HttpService();
 
   /**
-   * 슬랙 메시지 발송
+   * Send a Slack message
    *
-   * @param {string} webhook - 웹훅 URL
-   * @param {string} channel - 슬랙 채널
-   * @param {string} text - 메시지
-   * @param {string} token - 슬랙 인증 토큰
-   * @return {Promise<{ result: string }>} - 발송 결과
+   * @param {string} webhook - Webhook URL
+   * @param {string} channel - Slack channel
+   * @param {string} text - Message
+   * @param {string} token - Slack auth token
+   * @return {Promise<{ result: string }>} - Send result
    */
   async sendSlack(
     webhook: string,

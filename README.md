@@ -1,53 +1,53 @@
-### 설치 패키지
+### Installed Packages
 
-| 목록     | 패키지명                                                                                 |
-|--------|--------------------------------------------------------------------------------------|
-| 환경변수   | `@nestjs/config`                                                                     |
-| 데이터베이스 | `@nestjs/typeorm`, `typeorm`, `mysql2`                                               |
-| 값 검증   | `class-transformer`, `class-validator`, `joi`                                        |
-| 로그 기록  | `nest-winston`, `winston`                                                            |
-| 인증     | `@nestjs/jwt` `cookie-parser`, `@types/cookie-parser`                                |
-| 스케줄링   | `@nestjs/schedule`                                                                   |
-| 헬스 체크  | `@nestjs/terminus`, `@nestjs/axios`, `axios`                                         |
-| 메시지 전송 | `nodemailer`, `@types/nodemailer`                                                    |
-| 파일     | `@types/multer`, `multer`, `@aws-sdk/client-s3`, `multer-s3`, `@nestjs/serve-static` |
-| 문서화    | `@nestjs/swagger`                                                                    |
-| 보안     | `express-basic-auth`, `helmet`, `@nestjs/throttler`                                  |
-| 캐싱     | `@nestjs/cache-manager`, `cache-manager`                                             |
+| Category         | Package                                                                              |
+|-------------------|---------------------------------------------------------------------------------------|
+| Environment variables | `@nestjs/config`                                                                 |
+| Database          | `@nestjs/typeorm`, `typeorm`, `mysql2`                                               |
+| Validation        | `class-transformer`, `class-validator`, `joi`                                        |
+| Logging           | `nest-winston`, `winston`                                                            |
+| Authentication    | `@nestjs/jwt` `cookie-parser`, `@types/cookie-parser`                                |
+| Scheduling        | `@nestjs/schedule`                                                                   |
+| Health check      | `@nestjs/terminus`, `@nestjs/axios`, `axios`                                         |
+| Messaging         | `nodemailer`, `@types/nodemailer`                                                    |
+| Files             | `@types/multer`, `multer`, `@aws-sdk/client-s3`, `multer-s3`, `@nestjs/serve-static` |
+| Documentation     | `@nestjs/swagger`                                                                    |
+| Security          | `express-basic-auth`, `helmet`, `@nestjs/throttler`                                  |
+| Caching           | `@nestjs/cache-manager`, `cache-manager`                                             |
 
-### 검토
+### Backlog
 
 1. Testing
-2. Redis(Queues, Rate Limiting, Caching)
-3. WebSocket(ws/socket.io)
-4. CI/CD(GitHub Actions/Jenkins)
+2. Redis (Queues, Rate Limiting, Caching)
+3. WebSocket (ws/socket.io)
+4. CI/CD (GitHub Actions/Jenkins)
 
-### 구조
+### Structure
 
 ```
-├── envs  # 환경변수
-├── logs  # 로그기록
-├── files # 리소스 파일 및 임시 업로드 경로
+├── envs  # environment variables
+├── logs  # log files
+├── files # resource files & temporary upload path
 └── src
     ├── common
-    │   ├── auth  # 인증, 권한, 보안, 예외 필터
-    │   ├── chat  # 메일, MMS, 채팅, 슬랙
-    │   ├── cron  # 스케줄, 큐, 헬스 체크
-    │   └── file  # 파일 CRUD, 엑셀 CR
-    └── member    # 멤버, 메뉴, 지점, 권한 CRUD
+    │   ├── auth  # authentication, authorization, security, exception filters
+    │   ├── chat  # mail, MMS, chat, Slack
+    │   ├── cron  # scheduling, queues, health checks
+    │   └── file  # file CRUD, Excel import/export
+    └── member    # member, menu, branch, authority CRUD
 ```
 
-### 명령어
+### Commands
 
-| 명령어                                          | 기능                                                                      |
-|----------------------------------------------|-------------------------------------------------------------------------|
-| nest -h                                      | 사용 가능한 CLI 명령어 [(옵션 참조)](https://docs.nestjs.com/cli/usages)            |
-| nest g res common/sample --no-spec           | src/common/sample 폴더를 만들고, 테스트 파일 없이 CRUD 및 entities, dto 폴더 생성         |
-| nest g f common/sample --no-spec             | 기존에 있던 src/common/sample 폴더에 테스트 파일 없이 sample.filter.ts 파일 생성           |
-| nest g f common/sample/test --no-spec --flat | 기존에 있던 src/common/sample 폴더에 테스트 파일 없이 test.filter.ts 파일 생성             |
-| pm2 start ecosystem.config.js                | pm2 시작 명령어 [(옵션 참조)](https://pm2.keymetrics.io/docs/usage/quick-start/) |
+| Command                                       | Description                                                              |
+|------------------------------------------------|---------------------------------------------------------------------------|
+| nest -h                                       | List available CLI commands [(see options)](https://docs.nestjs.com/cli/usages) |
+| nest g res common/sample --no-spec            | Creates the src/common/sample folder and generates CRUD plus entities/dto folders, without test files |
+| nest g f common/sample --no-spec              | Generates sample.filter.ts (without a test file) inside the existing src/common/sample folder |
+| nest g f common/sample/test --no-spec --flat  | Generates test.filter.ts (without a test file) inside the existing src/common/sample folder |
+| pm2 start ecosystem.config.js                 | pm2 start command [(see options)](https://pm2.keymetrics.io/docs/usage/quick-start/) |
 
-### 환경변수
+### Environment Variables
 ```conf
 ROOT_DIRECTORY=sample-test
 
@@ -85,10 +85,10 @@ SWAGGER_USERNAME=sample-test-swagger
 SWAGGER_PASSWORD=sample-test-password
 ```
 
-### 참고사항
+### Notes
 
-- 사용 버전: `nvm-0.39.7`, `nodejs-20.11.0`, `npm-10.2.4`, `nestjs-10.3.0`, `mysql-8.0.35`, `nginx-1.18.0`, `pm2-5.3.1`
-- [공식 문서](https://docs.nestjs.com/)에서 추천하는 패키지 사용
+- Versions used: `nvm-0.39.7`, `nodejs-20.11.0`, `npm-10.2.4`, `nestjs-10.3.0`, `mysql-8.0.35`, `nginx-1.18.0`, `pm2-5.3.1`
+- Uses the packages recommended by the [official documentation](https://docs.nestjs.com/)
 - [@nestjs/terminus](https://docs.nestjs.com/recipes/terminus)
 - [@nestjs/axios](https://docs.nestjs.com/techniques/http-module)
 - [@nestjs/schedule node-cron](https://github.com/kelektiv/node-cron)
@@ -102,14 +102,14 @@ SWAGGER_PASSWORD=sample-test-password
 - [nvm](https://github.com/nvm-sh/nvm?tab=readme-ov-file#usage)
 - [aws s3 sdk examples](https://docs.aws.amazon.com/sdk-for-javascript/v3/developer-guide/javascript_s3_code_examples.html)
 - [git commit convention](https://www.conventionalcommits.org/en/v1.0.0/)
-- [homebrew 를 이용한 nvm 설치](https://formulae.brew.sh/formula/nvm)
-- [homebrew 를 이용한 mysql 설치](https://formulae.brew.sh/formula/mysql)
+- [Installing nvm via Homebrew](https://formulae.brew.sh/formula/nvm)
+- [Installing mysql via Homebrew](https://formulae.brew.sh/formula/mysql)
 
-### 운영환경
-- 서버: AWS EC2 (Ubuntu 22.04.4 LTS)
+### Production Environment
+- Server: AWS EC2 (Ubuntu 22.04.4 LTS)
 - DB: AWS RDS (MySQL 8.0.35)
-- 웹서버: nginx/1.18.0, pm2/5.3.1
-  - nginx 설정(https 설정은 AWS 로드밸런서에서 443 리스너 설정)
+- Web server: nginx/1.18.0, pm2/5.3.1
+  - nginx configuration (HTTPS termination is configured on the 443 listener of the AWS load balancer)
     - ```
       server {
         listen 80 default_server;

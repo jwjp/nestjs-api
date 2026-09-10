@@ -13,10 +13,10 @@ import { PutObjectCommandInput } from '@aws-sdk/client-s3/dist-types/commands/Pu
 import { PutObjectCommandOutput } from '@aws-sdk/client-s3';
 
 /**
- * 스케줄 등록, 삭제, 중지 등의 작업을 컨트롤러를 통해서 유동적으로 처리 가능
+ * Registering, removing, and stopping schedules can be handled dynamically through the controller
  *
- * 컨트롤러를 이용해서 스케줄 등록을 하지 않는 경우
- * @Cron, @Interval, @Timeout 데코레이터를 이용해 어느 서비스에서든 등록 가능
+ * If you don't register schedules through the controller,
+ * they can be registered from any service using the @Cron, @Interval, @Timeout decorators
  */
 @Injectable()
 export class CronService {
@@ -30,7 +30,7 @@ export class CronService {
   ) {}
 
   /**
-   * Cron 데코레이터로 생성 된 Cron 리스트
+   * List of cron jobs created via the Cron decorator
    *
    * @return {Object[]}
    */
@@ -48,7 +48,7 @@ export class CronService {
   }
 
   /**
-   * Interval 데코레이터로 생성 된 Cron 리스트
+   * List of jobs created via the Interval decorator
    *
    * @return {string[]}
    */
@@ -57,7 +57,7 @@ export class CronService {
   }
 
   /**
-   * Timeout 데코레이터로 생성 된 Cron 리스트
+   * List of jobs created via the Timeout decorator
    *
    * @return {string[]}
    */
@@ -78,17 +78,17 @@ export class CronService {
   }
 
   /**
-   * 매일 오전 1시에 로그 파일을 S3 저장
-   * 10Mb 이상이면 슬랙 메시지 발송 후 스킵
-   * 업로드 된 로그 파일의 자동 삭제는 S3 버킷의 수명 주기 규칙 활용
+   * Uploads log files to S3 every day at 1am
+   * Sends a Slack message and skips the file if it is over 10MB
+   * Uploaded log files are auto-deleted via the S3 bucket's lifecycle rules
    *
-   * @return {Promise<PutObjectCommandOutput[]>} - S3 저장 결과
+   * @return {Promise<PutObjectCommandOutput[]>} - S3 upload result
    */
   async logHandling(): Promise<PutObjectCommandOutput[]> {
-    // 프로젝트 루트 폴더
+    // Project root folder
     const rootPath: string = path.join(__dirname + '/../../../');
 
-    // 폴더가 존재하지 않는 경우
+    // If the folder does not exist
     if (
       !fs.existsSync(rootPath) &&
       rootPath.split('/').filter(Boolean).pop() !==
@@ -99,32 +99,32 @@ export class CronService {
       });
     }
 
-    // 로그파일 루트 폴더
+    // Log file root folder
     const logsPath = path.join(rootPath, 'logs');
 
-    // 로그 파일만 보기
+    // Only look at log files
     const files: string[] = fs
       .readdirSync(logsPath)
       .filter((file) => path.extname(file).toLowerCase() === '.log');
 
-    // S3 버킷에 한번에 업로드 하기 위한 배열
+    // Array for uploading to the S3 bucket in one batch
     const putObjectInputs: PutObjectCommandInput[] = [];
 
-    // 파일 정보 확인
+    // Check file info
     for (const i in files) {
-      // 파일 경로 및 이름
+      // File path and name
       const file = path.join('logs', files[i]);
 
-      // 파일 정보
+      // File stats
       const stat: fs.Stats = fs.lstatSync(file);
 
-      // 현재 시간과 파일 생성 시간 차이 (단위: ms)
+      // Difference between now and the file creation time (in ms)
       const diffMs: number = Date.now() - parseInt(String(stat.birthtimeMs));
 
-      // 1000: ms 단위 변환 / 3600(초): 1시간 / 24(시간): 1일
+      // 1000: convert ms to seconds / 3600(sec): 1 hour / 24(hours): 1 day
       const diffDay: number = diffMs / 1000 / 3600 / 24;
 
-      // 로그 파일이 10Mb 이상인 경우, 슬랙 메시지 발송 후 건너뜀
+      // If the log file is over 10MB, send a Slack message and skip it
       if (stat.size > 1024 * 1024 * 10) {
         await this.slackService.sendSlack(
           this.configService.get('SLACK_WEBHOOK'),
@@ -136,11 +136,11 @@ export class CronService {
         continue;
       }
 
-      // 생성 후 하루가 지난 파일 && 사이즈가 0 이상인 파일
+      // Files older than a day and larger than 0 bytes
       if (diffDay > 1 && stat.size > 0) {
         const fileStream: fs.ReadStream = fs.createReadStream(file);
 
-        // 배열에 S3 Input 파라미터 작성
+        // Add the S3 input parameters to the array
         putObjectInputs.push({
           Bucket: this.configService.get<string>('AWS_S3_BUCKET'),
           Key: 'logs/' + files[i],
@@ -149,14 +149,14 @@ export class CronService {
       }
     }
 
-    // S3 업로드 및 기존 파일 초기화
+    // Upload to S3 and reset the existing files
     return await Promise.all(
       putObjectInputs.map((input) => {
         for (const i in files) {
-          // 파일 경로 및 이름
+          // File path and name
           const file = path.join('logs', files[i]);
 
-          // 업로드 완료 후 삭제 및 재생성
+          // Delete and recreate the file after the upload completes
           fs.unlinkSync(file);
           fs.writeFileSync(file, '');
         }

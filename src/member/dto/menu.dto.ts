@@ -11,12 +11,12 @@ import { Menu } from '../entities/menu.entity';
 import { ResponseDto } from '../../common/auth/response.dto';
 
 /**
- * 메뉴 엔티티 기본 DTO
+ * Base DTO for the Menu entity
  */
 export class MenuDto {
   /**
-   * 메뉴명
-   * @example 지점관리
+   * Menu name
+   * @example Branch Management
    */
   @IsString({
     message: '메뉴명은 문자만 사용할 수 있습니다.',
@@ -30,7 +30,7 @@ export class MenuDto {
   title: string;
 
   /**
-   * 링크 주소
+   * Link address
    * @example /branch
    */
   @IsString({
@@ -45,7 +45,7 @@ export class MenuDto {
   link: string;
 
   /**
-   * 메뉴 순서
+   * Menu order
    * @example 1
    */
   @IsInt({
@@ -55,12 +55,12 @@ export class MenuDto {
 }
 
 /**
- * 메뉴 생성 DTO
+ * DTO for creating a menu
  */
 export class CreateMenuDto extends MenuDto {}
 
 /**
- * (Swagger) 메뉴 생성 결과, 인터셉터 응답 포함
+ * (Swagger) Menu creation result, including the interceptor response
  */
 export class CreateMenuResponseDto extends PartialType(ResponseDto) {
   result: boolean;
@@ -71,7 +71,7 @@ export class CreateMenuResponseDto extends PartialType(ResponseDto) {
 }
 
 /**
- * (Swagger) 메뉴 조회 결과, 인터셉터 응답 포함
+ * (Swagger) Menu lookup result, including the interceptor response
  */
 export class GetMenuResponseDto extends PartialType(ResponseDto) {
   result: boolean;
@@ -82,12 +82,12 @@ export class GetMenuResponseDto extends PartialType(ResponseDto) {
 }
 
 /**
- * 메뉴 업데이트 DTO
+ * DTO for updating a menu
  */
 export class UpdateMenuDto extends PartialType(MenuDto) {}
 
 /**
- * (Swagger) 메뉴 업데이트 결과, 인터셉터 응답 포함
+ * (Swagger) Menu update result, including the interceptor response
  */
 export class UpdateMenuResponseDto extends PartialType(ResponseDto) {
   result: boolean;
@@ -98,11 +98,11 @@ export class UpdateMenuResponseDto extends PartialType(ResponseDto) {
 }
 
 /**
- * 멤버 메뉴 권한 요청 DTO
+ * DTO for a member's menu authority request
  */
 export class MenuListByAuthorityDto {
   /**
-   * 멤버ID
+   * Member ID
    * @example 1
    */
   @IsNumber(
@@ -120,7 +120,7 @@ export class MenuListByAuthorityDto {
   memberId: number;
 
   /**
-   * 지점ID
+   * Branch ID
    * @example 1
    */
   @IsNumber(
@@ -139,12 +139,12 @@ export class MenuListByAuthorityDto {
 }
 
 /**
- * 메뉴 권한 중 필요 정보
+ * Fields needed from the menu authority
  */
 class MenuListResponse extends PickType(Menu, ['id', 'title', 'link', 'seq']) {}
 
 /**
- * (Swagger) 멤버 메뉴 권한 요청 결과, 인터셉터 응답 포함
+ * (Swagger) Member menu authority request result, including the interceptor response
  */
 export class MenuListResponseDto extends PartialType(ResponseDto) {
   result: boolean;
@@ -155,11 +155,11 @@ export class MenuListResponseDto extends PartialType(ResponseDto) {
 }
 
 /**
- * 메뉴 ID 키 값 조회 DTO
+ * DTO for looking up a menu by ID
  */
 export class MenuIdDto {
   /**
-   * 메뉴ID
+   * Menu ID
    * @example 1
    */
   @IsNumberString(
