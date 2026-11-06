@@ -8,7 +8,7 @@ interface ValidationCandidate {
 
 /**
  * A token only applies to the unverified address it was issued for, so a
- * reused link cannot restore access after a demotion or an email change
+ * reused link cannot confirm an address the member no longer uses
  */
 export function canCompleteEmailValidation(
   member: ValidationCandidate | null,
@@ -17,7 +17,14 @@ export function canCompleteEmailValidation(
   return (
     typeof tokenEmail === 'string' &&
     member?.email === tokenEmail &&
-    member.role === RolesEnum.user &&
+    member.role !== RolesEnum.deny &&
     !member.emailValidateAt
   );
+}
+
+/**
+ * A partial update leaves out the email unless it is being changed
+ */
+export function changesEmail(current: string, next: string | undefined) {
+  return next !== undefined && next !== current;
 }

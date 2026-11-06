@@ -2,6 +2,7 @@ import {
   IsAlphanumeric,
   IsArray,
   IsEmail,
+  IsEnum,
   IsJWT,
   IsNotEmpty,
   IsNumber,
@@ -26,6 +27,7 @@ import { Authority } from '../entities/authority.entity';
 import { Menu } from '../entities/menu.entity';
 import { Branch } from '../entities/branch.entity';
 import { Type } from 'class-transformer';
+import { RolesEnum } from '../../common/auth/roles.enum';
 
 /**
  * Base DTO for the Member entity
@@ -364,6 +366,20 @@ export class MemberResponseDto extends PartialType(ResponseDto) {
 export class UpdateMemberDto extends PartialType(
   IntersectionType(OmitType(MemberDto, ['loginId']), MemberAuthorityDto),
 ) {}
+
+/**
+ * DTO for changing a member's role
+ */
+export class UpdateMemberRoleDto {
+  /**
+   * Member role
+   * @example user
+   */
+  @IsEnum(RolesEnum, {
+    message: '역할 값이 올바르지 않습니다.',
+  })
+  role: RolesEnum;
+}
 
 /**
  * (Swagger) Member update result, including the interceptor response

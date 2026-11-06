@@ -35,6 +35,7 @@ import {
   SignUpResponseDto,
   UpdateMemberDto,
   UpdateMemberResponseDto,
+  UpdateMemberRoleDto,
 } from './dto/member.dto';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { ResponseDto, ResponseErrorDto } from '../common/auth/response.dto';
@@ -242,6 +243,29 @@ export class MemberController {
     @Body() updateMemberDto: UpdateMemberDto,
   ): Promise<UpdateMemberResponseDto> {
     return this.memberService.updateMemberById(memberIdDto, updateMemberDto);
+  }
+
+  /**
+   * Change a member's role<br/>
+   * Only a member with a verified email can become an administrator
+   *
+   * @param {MemberIdDto} memberIdDto - Member ID key
+   * @param {UpdateMemberRoleDto} updateMemberRoleDto - New role
+   * @param {Request} request
+   * @return {Promise<UpdateMemberResponseDto>} - Update result
+   */
+  @ApiOperation({ summary: 'Change member role' })
+  @Patch('/:id/role')
+  updateMemberRoleById(
+    @Param() memberIdDto: MemberIdDto,
+    @Body() updateMemberRoleDto: UpdateMemberRoleDto,
+    @Req() request: Request,
+  ): Promise<UpdateMemberResponseDto> {
+    return this.memberService.updateMemberRoleById(
+      memberIdDto,
+      updateMemberRoleDto,
+      request.headers.authorization,
+    );
   }
 
   /**

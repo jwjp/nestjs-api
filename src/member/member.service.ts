@@ -44,6 +44,7 @@ import {
   SignUpResponseDto,
   UpdateMemberDto,
   UpdateMemberResponseDto,
+  UpdateMemberRoleDto,
 } from './dto/member.dto';
 import { Authority } from './entities/authority.entity';
 import { validate } from 'class-validator';
@@ -55,8 +56,9 @@ import { SlackService } from '../common/chat/slack.service';
 import { EmailService } from '../common/chat/email.service';
 import { ConfigService } from '@nestjs/config';
 import { RolesEnum } from '../common/auth/roles.enum';
-import { canCompleteEmailValidation } from './email-validation';
+import { canCompleteEmailValidation, changesEmail } from './email-validation';
 import { buildValidationEmail, hashRefreshToken } from './member-credentials';
+import { roleChangeRejection } from './member-role';
 import { randomUUID } from 'crypto';
 
 // Compared when the login ID is unknown so both failures take the same time
@@ -200,10 +202,10 @@ export class MemberService {
       {
         id: member.id,
         email: member.email,
-        role: RolesEnum.user,
+        role: Not(RolesEnum.deny),
         emailValidateAt: IsNull(),
       },
-      { role: RolesEnum.admin, emailValidateAt: new Date() },
+      { emailValidateAt: new Date() },
     );
 
     // Build the DTO used for the Swagger docs
@@ -721,26 +723,24 @@ export class MemberService {
         }
       }
 
-      // If not in the deny state && the email is being changed
-      if (
-        member.role !== RolesEnum.deny &&
-        member.email !== updateMemberDto.email
-      ) {
-        // Downgrade the role to user
-        updateMemberDto['role'] = RolesEnum.user;
-
-        // Require the email to be re-verified
+      // A new address has to be verified again
+      if (changesEmail(member.email, updateMemberDto.email)) {
         updateMemberDto['emailValidateAt'] = null;
       }
 
-      // Update the member info
-      const result: UpdateResult = await queryRunner.manager.update(
-        Member,
-        {
-          id: member.id,
-        },
-        updateMemberDto,
-      );
+      // An update of only branches and menus leaves no member columns to set
+      let affectedRows = 1;
+      if (Object.keys(updateMemberDto).length > 0) {
+        // Update the member info
+        const result: UpdateResult = await queryRunner.manager.update(
+          Member,
+          {
+            id: member.id,
+          },
+          updateMemberDto,
+        );
+        affectedRows = result.affected;
+      }
 
       // Commit the transaction
       await queryRunner.commitTransaction();
@@ -748,7 +748,7 @@ export class MemberService {
       // Build the DTO used for the Swagger docs
       const updateMemberResponseDto: UpdateMemberResponseDto =
         new UpdateMemberResponseDto();
-      updateMemberResponseDto.message = { affectedRows: result.affected };
+      updateMemberResponseDto.message = { affectedRows };
 
       return updateMemberResponseDto;
     } catch (err) {
@@ -769,6 +769,59 @@ export class MemberService {
       // Release the DB connection
       await queryRunner.release();
     }
+  }
+
+  /**
+   * Change a member's role
+   *
+   * @param {MemberIdDto} memberIdDto - Member ID key
+   * @param {UpdateMemberRoleDto} updateMemberRoleDto - New role
+   * @param {string} authorization
+   * @return {Promise<UpdateMemberResponseDto>} - Update result
+   */
+  async updateMemberRoleById(
+    memberIdDto: MemberIdDto,
+    updateMemberRoleDto: UpdateMemberRoleDto,
+    authorization: string,
+  ): Promise<UpdateMemberResponseDto> {
+    const member: Member = await this.memberRepository.findOne({
+      select: { id: true, emailValidateAt: true },
+      where: { id: memberIdDto.id },
+    });
+
+    if (member === null) {
+      throw new BadRequestException({
+        message: '멤버가 존재하지 않습니다.',
+      });
+    }
+
+    // Info of the member who made the request (from the token)
+    const [, token] = authorization?.split(' ') ?? [];
+    const payload = await this.jwtService.verifyAsync(token, {
+      secret: this.configService.get<string>('JWT_ACCESS_SECRET_KEY'),
+    });
+
+    const rejection = roleChangeRejection({
+      targetId: member.id,
+      requesterId: payload.id,
+      nextRole: updateMemberRoleDto.role,
+      emailValidateAt: member.emailValidateAt,
+    });
+    if (rejection) {
+      throw new BadRequestException({ message: rejection });
+    }
+
+    const result: UpdateResult = await this.memberRepository.update(
+      { id: member.id },
+      { role: updateMemberRoleDto.role },
+    );
+
+    // Build the DTO used for the Swagger docs
+    const updateMemberResponseDto: UpdateMemberResponseDto =
+      new UpdateMemberResponseDto();
+    updateMemberResponseDto.message = { affectedRows: result.affected };
+
+    return updateMemberResponseDto;
   }
 
   /**
@@ -798,13 +851,12 @@ export class MemberService {
     // Result of the member info update
     let validationUpdateResult: UpdateResult;
 
-    // Only change the role if not already in the deny state
+    // Only reset the verification if not already in the deny state
     if (member.role !== RolesEnum.deny) {
       // Update the member info
       validationUpdateResult = await this.memberRepository.update(
         { id: member.id },
         {
-          role: RolesEnum.user,
           emailValidateAt: null,
         },
       );
@@ -888,13 +940,12 @@ export class MemberService {
     // Result of the member info update
     let validationUpdateResult: UpdateResult;
 
-    // Only change the role if not already in the deny state
+    // Only reset the verification if not already in the deny state
     if (member.role !== RolesEnum.deny) {
       // Update the member info
       validationUpdateResult = await this.memberRepository.update(
         { id: member.id },
         {
-          role: RolesEnum.user,
           emailValidateAt: null,
         },
       );
