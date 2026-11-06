@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { join } from 'path';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
@@ -17,6 +18,12 @@ import { FileModule } from './common/file/file.module';
 import { JwtModule } from '@nestjs/jwt';
 import { AuthGuard } from './common/auth/auth.guard';
 import { AuthInterceptor } from './common/auth/auth.interceptor';
+import { Member } from './member/entities/member.entity';
+
+// A short secret can be guessed offline from any issued token
+const jwtSecret = Joi.string()
+  .required()
+  .when('NODE_ENV', { is: 'prod', then: Joi.string().min(32) });
 
 @Module({
   imports: [
@@ -27,7 +34,7 @@ import { AuthInterceptor } from './common/auth/auth.interceptor';
         const schema = Joi.object({
           // Runtime environment (Node environment variable)
           NODE_ENV: Joi.string()
-            .valid('local', 'dev', 'prod')
+            .valid('local', 'dev', 'prod', 'test')
             .default('dev')
             .required(),
           // Timezone (Node environment variable)
@@ -35,9 +42,6 @@ import { AuthInterceptor } from './common/auth/auth.interceptor';
             .valid('Asia/Seoul', 'Asia/Hong_Kong', 'Asia/Tokyo', 'UTC')
             .default('Asia/Seoul')
             .required(),
-
-          // Root directory name
-          ROOT_DIRECTORY: Joi.string().required(),
 
           // Database
           DB_HOST: Joi.string().required(),
@@ -49,18 +53,32 @@ import { AuthInterceptor } from './common/auth/auth.interceptor';
           DB_CHARSET: Joi.string().required(),
 
           // JSON Web Token
-          JWT_ACCESS_SECRET_KEY: Joi.string().required(),
+          JWT_ACCESS_SECRET_KEY: jwtSecret,
           JWT_ACCESS_EXPIRES_TIME: Joi.string().required(),
-          JWT_REFRESH_SECRET_KEY: Joi.string().required(),
+          JWT_REFRESH_SECRET_KEY: jwtSecret,
           JWT_REFRESH_EXPIRES_TIME: Joi.string().required(),
-          JWT_EMAIL_VALIDATION_SECRET_KEY: Joi.string().required(),
+          JWT_EMAIL_VALIDATION_SECRET_KEY: jwtSecret,
           JWT_EMAIL_VALIDATION_EXPIRES_TIME: Joi.string().required(),
+          JWT_PASSWORD_RESET_SECRET_KEY: jwtSecret,
+          JWT_PASSWORD_RESET_EXPIRES_TIME: Joi.string().default('30m'),
 
           // Origin used in email links, such as https://api.example.com
           // Verification emails are refused while this is unset
           PUBLIC_BASE_URL: Joi.string()
             .uri({ scheme: ['http', 'https'] })
             .optional(),
+
+          // Frontend page that receives ?token= from password reset emails
+          // Reset emails are not sent while this is unset
+          PASSWORD_RESET_URL: Joi.string()
+            .uri({ scheme: ['http', 'https'] })
+            .optional(),
+
+          // Name shown in emails and notifications
+          APP_NAME: Joi.string().default('NestJS API'),
+
+          // Receives member removal notifications (optional)
+          ADMIN_EMAIL: Joi.string().email().optional(),
 
           // Slack
           SLACK_CHANNEL: Joi.string().required(),
@@ -72,7 +90,6 @@ import { AuthInterceptor } from './common/auth/auth.interceptor';
           EMAIL_PASSWORD: Joi.string().required(),
 
           // File upload paths
-          UPLOAD_DISK_PATH: Joi.string().required(),
           UPLOAD_S3_PATH: Joi.string().required(),
 
           // Amazon Web Services
@@ -106,16 +123,27 @@ import { AuthInterceptor } from './common/auth/auth.interceptor';
       password: process.env.DB_PASSWORD,
       database: process.env.DB_SCHEMA,
       entities: [process.env.DB_ENTITIES],
+      migrations: [join(__dirname, 'database', 'migrations', '*.{js,ts}')],
+      migrationsRun: process.env.DB_MIGRATIONS_RUN === 'true',
       charset: process.env.DB_CHARSET,
       // Never alter a production schema automatically
-      synchronize: ['local', 'dev'].includes(process.env.NODE_ENV),
+      synchronize:
+        ['local', 'dev'].includes(process.env.NODE_ENV) &&
+        process.env.DB_MIGRATIONS_RUN !== 'true',
       timezone: '+09:00',
       logger: new TypeOrmLogger('all'),
       maxQueryExecutionTime: 1000,
     }),
-    ThrottlerModule.forRoot([{ ttl: 10000, limit: 10 }]),
+    ThrottlerModule.forRoot([
+      {
+        ttl: Number(process.env.THROTTLE_TTL_MS) || 10000,
+        limit: Number(process.env.THROTTLE_LIMIT) || 10,
+      },
+    ]),
     CacheModule.register({ ttl: 2000, max: 10 }),
     JwtModule.register({}),
+    // AuthGuard loads the member on every request
+    TypeOrmModule.forFeature([Member]),
     ServeStaticModule.forRoot({
       rootPath: 'files',
       serveRoot: '',

@@ -1,3 +1,50 @@
+# NestJS API
+
+A backend template with members, roles, branch authority, files on S3, migrations, and end-to-end tests.
+
+### Quick Start
+
+Requires Node.js 24.9 or newer and Docker.
+
+```bash
+cp .env.example envs/.local.env   # create the envs folder first
+docker compose up -d db
+npm ci
+npm run build
+npm run start:local
+```
+
+The API runs on port 3000, and the Swagger docs are at `/docs` in `local` and `dev`.
+
+The first administrator is set directly in the database:
+
+```sql
+UPDATE member SET role = 'admin', emailValidateAt = NOW() WHERE loginId = 'your-id';
+```
+
+To run the API in a container instead, use `docker compose --profile api up --build`.
+
+### Tests
+
+```bash
+npm test             # unit tests
+docker compose up -d db
+npm run test:e2e     # the real application and MySQL, with email, Slack and S3 replaced
+```
+
+The e2e run drops and recreates the `api_e2e` schema through the migrations. Set `E2E_DB_HOST`, `E2E_DB_PORT`, `E2E_DB_USERNAME` and `E2E_DB_PASSWORD` to use another server.
+
+### Authentication and Authority
+
+| Rule | Behavior |
+|---|---|
+| Sessions | The access token is checked against the database on every request, so a role change, removal, password change or logout applies immediately. This adds one primary key lookup per request. |
+| Refresh tokens | Stored as a digest and usable once. Store the `refreshToken` returned by `POST /members/refresh`. Each member has one active refresh token, so a new login replaces the previous one. |
+| Email verification | Only records `emailValidateAt`. It does not grant anything by itself. |
+| Roles | Set with `PATCH /members/:id/role` by an administrator. Only a verified member can become an administrator, and nobody can change their own role or remove themselves. |
+| Branch authority | `AuthorityService.assertBranchAccess` limits regular members to their granted branches. The file API uses it; call it the same way from new branch-scoped services. |
+| Menu authority | Stored and returned by `GET /members/me` for building navigation, but not enforced by the API, because menus do not map to routes yet. |
+
 ### Installed Packages
 
 | Category         | Package                                                                              |
@@ -10,30 +57,30 @@
 | Scheduling        | `@nestjs/schedule`                                                                   |
 | Health check      | `@nestjs/terminus`, `@nestjs/axios`, `axios`                                         |
 | Messaging         | `nodemailer`, `@types/nodemailer`                                                    |
-| Files             | `@types/multer`, `multer`, `@aws-sdk/client-s3`, `multer-s3`, `@nestjs/serve-static` |
+| Files             | `@types/multer`, `multer`, `@aws-sdk/client-s3`, `@aws-sdk/s3-request-presigner`, `@nestjs/serve-static` |
 | Documentation     | `@nestjs/swagger`                                                                    |
 | Security          | `express-basic-auth`, `helmet`, `@nestjs/throttler`                                  |
 | Caching           | `@nestjs/cache-manager`, `cache-manager`                                             |
 
 ### Backlog
 
-1. Testing
-2. Redis (Queues, Rate Limiting, Caching)
-3. WebSocket (ws/socket.io)
-4. CI/CD (GitHub Actions/Jenkins)
+1. Redis (Queues, Rate Limiting, Caching)
+2. WebSocket (ws/socket.io)
 
 ### Structure
 
 ```
 ├── envs  # environment variables
 ├── logs  # log files
-├── files # resource files & temporary upload path
+├── files # public static files, served from the root path
+├── test  # e2e tests
 └── src
     ├── common
     │   ├── auth  # authentication, authorization, security, exception filters
-    │   ├── chat  # mail, MMS, chat, Slack
-    │   ├── cron  # scheduling, queues, health checks
-    │   └── file  # file CRUD, Excel import/export
+    │   ├── chat  # mail, Slack
+    │   ├── cron  # scheduling, health checks
+    │   └── file  # file upload, download, deletion on S3
+    ├── database  # TypeORM data source and migrations
     └── member    # member, menu, branch, authority CRUD
 ```
 
@@ -45,53 +92,28 @@
 | nest g res common/sample --no-spec            | Creates the src/common/sample folder and generates CRUD plus entities/dto folders, without test files |
 | nest g f common/sample --no-spec              | Generates sample.filter.ts (without a test file) inside the existing src/common/sample folder |
 | nest g f common/sample/test --no-spec --flat  | Generates test.filter.ts (without a test file) inside the existing src/common/sample folder |
-| pm2 start ecosystem.config.js                 | pm2 start command [(see options)](https://pm2.keymetrics.io/docs/usage/quick-start/) |
+| pm2 start ecosystem.config.js                 | Runs `dist/main.js` with `NODE_ENV=prod` [(see options)](https://pm2.keymetrics.io/docs/usage/quick-start/) |
+| NODE_ENV=local npm run migration:generate -- src/database/migrations/Name | Generates a migration from entity changes |
+| NODE_ENV=local npm run migration:run          | Applies pending migrations |
+| NODE_ENV=local npm run migration:revert       | Reverts the latest migration |
+| npm run migration:run:prod                    | Applies pending migrations from `dist` |
 
 ### Environment Variables
-`synchronize` runs only when `NODE_ENV` is `local` or `dev`. Apply schema changes to `prod` with your own migration step.
 
-```conf
-ROOT_DIRECTORY=sample-test
-# Behind one reverse proxy such as Nginx, use 1. Leave empty when clients connect directly.
-TRUST_PROXY=1
+`.env.example` lists every variable. `NODE_ENV` selects `envs/.{NODE_ENV}.env`.
 
-DB_HOST=localhost
-DB_PORT=3306
-DB_SCHEMA=api
-DB_USERNAME=root
-DB_PASSWORD=root
-DB_ENTITIES=dist/**/*.entity.{js,ts}
-DB_CHARSET=utf8mb4_unicode_ci
+`synchronize` runs only when `NODE_ENV` is `local` or `dev` and `DB_MIGRATIONS_RUN` is not `true`. Apply schema changes to `prod` with `npm run migration:run:prod`.
 
-JWT_ACCESS_SECRET_KEY='sample-test-jwt-access'
-JWT_ACCESS_EXPIRES_TIME=3h
-JWT_REFRESH_SECRET_KEY='sample-test-jwt-refresh'
-JWT_REFRESH_EXPIRES_TIME=9h
-JWT_EMAIL_VALIDATION_SECRET_KEY='sample-test-jwt-email'
-JWT_EMAIL_VALIDATION_EXPIRES_TIME=30m
+A database created before migrations were added already has the `Initial` tables. Before the first run, record that migration as applied:
 
-SLACK_CHANNEL=
-SLACK_TOKEN=
-SLACK_WEBHOOK=
-
-EMAIL_USERNAME=
-EMAIL_PASSWORD=
-
-UPLOAD_DISK_PATH=files
-UPLOAD_S3_PATH=files
-
-AWS_ACCESS_KEY=
-AWS_SECRET_ACCESS_KEY=
-AWS_S3_BUCKET=
-AWS_S3_REGION=
-
-SWAGGER_USERNAME=sample-test-swagger
-SWAGGER_PASSWORD=sample-test-password
+```sql
+CREATE TABLE IF NOT EXISTS migrations (id int NOT NULL AUTO_INCREMENT PRIMARY KEY, timestamp bigint NOT NULL, name varchar(255) NOT NULL);
+INSERT INTO migrations (timestamp, name) VALUES (1793976185388, 'Initial1793976185388');
 ```
 
 ### Notes
 
-- Versions used: `nvm-0.39.7`, `nodejs-20.11.0`, `npm-10.2.4`, `nestjs-10.3.0`, `mysql-8.0.35`, `nginx-1.18.0`, `pm2-5.3.1`
+- Versions used: `nodejs-24`, `nestjs-12`, `typeorm-1`, `mysql-8.0`, `nginx-1.18.0`, `pm2-5.3.1`
 - Uses the packages recommended by the [official documentation](https://docs.nestjs.com/)
 - [@nestjs/terminus](https://docs.nestjs.com/recipes/terminus)
 - [@nestjs/axios](https://docs.nestjs.com/techniques/http-module)

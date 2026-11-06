@@ -68,7 +68,7 @@ export class CronController {
    *
    * @return {Promise<PutObjectCommandOutput[]>} - S3 upload result
    */
-  @Cron('0 1 * * * *', { name: 'logHandling' })
+  @Cron('0 0 1 * * *', { name: 'logHandling' })
   async logHandling(): Promise<PutObjectCommandOutput[]> {
     return await this.cronService.logHandling();
   }

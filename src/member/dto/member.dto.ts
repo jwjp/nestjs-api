@@ -125,7 +125,7 @@ export class MemberAuthorityDto {
     message: '지점 ID 값은 배열 형태이어야 합니다.',
   })
   @IsOptional()
-  branchIds?: number[] = [];
+  branchIds?: number[];
 
   /**
    * Menu IDs
@@ -135,7 +135,7 @@ export class MemberAuthorityDto {
     message: '메뉴 ID 값은 배열 형태이어야 합니다.',
   })
   @IsOptional()
-  menuIds?: number[] = [];
+  menuIds?: number[];
 }
 
 /**
@@ -499,5 +499,46 @@ export class MemberRefreshResponseDto extends PartialType(ResponseDto) {
   statusCode: number;
   request: string;
   timestamp: string;
-  message: { accessToken: string };
+  message: { accessToken: string; refreshToken: string };
+}
+
+/**
+ * DTO for updating your own profile
+ */
+export class UpdateMyProfileDto extends PartialType(
+  PickType(MemberDto, ['username', 'email']),
+) {}
+
+/**
+ * DTO for changing your own password
+ */
+export class ChangePasswordDto extends PickType(MemberDto, ['password']) {
+  /**
+   * Current password
+   */
+  @IsString({
+    message: '현재 패스워드를 입력해주세요.',
+  })
+  @IsNotEmpty({
+    message: '현재 패스워드를 입력해주세요.',
+  })
+  currentPassword: string;
+}
+
+/**
+ * DTO for requesting a password reset email
+ */
+export class ForgotPasswordDto extends PickType(MemberDto, ['email']) {}
+
+/**
+ * DTO for setting a new password with a reset token
+ */
+export class ResetPasswordDto extends PickType(MemberDto, ['password']) {
+  /**
+   * Token from the password reset email
+   */
+  @IsJWT({
+    message: '패스워드 재설정 토큰이 jwt 형태가 아닙니다.',
+  })
+  token: string;
 }

@@ -1,0 +1,38 @@
+# Local development and e2e database:
+#   docker compose up -d db
+# The API in a container as well (needs envs/.local.env):
+#   docker compose --profile api up --build
+services:
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: api
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    ports:
+      - '127.0.0.1:3307:3306'
+    volumes:
+      - db-data:/var/lib/mysql
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', '127.0.0.1', '-proot']
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  api:
+    profiles: [api]
+    build: .
+    env_file: envs/.local.env
+    environment:
+      NODE_ENV: local
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_MIGRATIONS_RUN: 'true'
+    ports:
+      - '127.0.0.1:3000:3000'
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  db-data:

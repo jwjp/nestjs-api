@@ -2,7 +2,11 @@ module.exports = {
   apps: [
     {
       name: 'nestjs-api',
-      script: 'npm run start:dev',
+      script: 'dist/main.js',
+      env: {
+        NODE_ENV: 'prod',
+        TZ: 'Asia/Seoul',
+      },
       error_file: '/dev/null',
       out_file: '/dev/null',
     },

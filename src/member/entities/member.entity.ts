@@ -94,6 +94,18 @@ export class Member {
   refreshToken: string;
 
   /**
+   * Increased to invalidate every access token issued so far
+   */
+  @Column('int', {
+    default: 0,
+    nullable: false,
+    select: false,
+    comment: 'Access token version',
+  })
+  @ApiHideProperty()
+  tokenVersion: number;
+
+  /**
    * Email verification date
    */
   @Column('timestamp', {
