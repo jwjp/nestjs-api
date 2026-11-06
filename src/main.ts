@@ -1,15 +1,10 @@
-import { HttpAdapterHost, NestFactory } from '@nestjs/core';
+import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ValidationPipe } from '@nestjs/common';
+import { configureApp } from './app.setup';
 import { utilities as WinstonUtilities, WinstonModule } from 'nest-winston';
 import * as winston from 'winston';
 import * as basicAuth from 'express-basic-auth';
-import { globalMiddleware } from './common/auth/auth.middleware';
-import { AuthFilter } from './common/auth/auth.filter';
-import { parseTrustProxy } from './common/auth/trust-proxy';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import * as cookieParser from 'cookie-parser';
-import helmet from 'helmet';
 import { NestExpressApplication } from '@nestjs/platform-express';
 
 async function bootstrap() {
@@ -44,16 +39,7 @@ async function bootstrap() {
     }),
   });
 
-  // HTTP security settings
-  // https://github.com/helmetjs/helmet
-  app.use(helmet());
-
-  // Enable CORS
-  // https://github.com/expressjs/cors
-  app.enableCors();
-
-  // Trust only the configured proxy
-  app.set('trust proxy', parseTrustProxy(process.env.TRUST_PROXY));
+  configureApp(app);
 
   // Only enable Swagger in non-production environments
   if (['local', 'dev'].includes(process.env.NODE_ENV)) {
@@ -97,32 +83,7 @@ async function bootstrap() {
     );
   }
 
-  // Use cookies
-  app.use(cookieParser());
-
-  /**
-   * Request & response lifecycle
-   * 1. Middleware (global > module)
-   * 2. Guards (global > controller > route)
-   * 3. Interceptors (global > controller > route)
-   * 4. Pipes (global > controller > route)
-   * 5. Controller <> service
-   * 6. Interceptors (route > controller > global)
-   * 7. Exception filters (route > controller > global)
-   */
-
-  // 1. Middleware (pre-processing & logging)
-  app.use(globalMiddleware);
-
-  // 2. Guards (authorization)
-  // 3. Interceptors (modify data before/after the request)
-  // 4. Pipes (value validation)
-  app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
-
-  // 5. Exception filters (error handling & error logging)
-  app.useGlobalFilters(new AuthFilter(app.get(HttpAdapterHost)));
-
-  await app.listen(3000);
+  await app.listen(Number(process.env.PORT) || 3000);
 }
 
 bootstrap().then();

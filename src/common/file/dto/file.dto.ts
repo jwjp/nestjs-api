@@ -160,7 +160,7 @@ export class UploadS3FilesResponse extends PartialType(ResponseDto) {
   message: UploadS3ResultDto[];
 }
 
-export class GetS3FileByFileId {
+export class FileIdDto {
   @IsNumber(
     {
       allowNaN: false,
@@ -231,27 +231,15 @@ export class S3FileListPageDto {
   perPage?: number = 10;
 }
 
-export class GetS3FileByBranchId {
-  @IsNumber(
-    {
-      allowNaN: false,
-      allowInfinity: false,
-    },
-    {
-      message: '지점 ID 값은 숫자 형태만 올 수 있습니다.',
-    },
-  )
-  @Type(() => Number)
-  branch: number;
-}
-
-export class GetS3FileByMaxKeys {
-  maxKeys: number;
-}
-
-export class getS3FileByUniqueKey {
-  branchId: number;
-  maxKeys: number;
+/**
+ * (Swagger) File details result, including the interceptor response
+ */
+export class FileDetailResponseDto extends PartialType(ResponseDto) {
+  result: boolean;
+  statusCode: number;
+  request: string;
+  timestamp: string;
+  message: File & { downloadUrl: string };
 }
 
 /**
@@ -263,17 +251,4 @@ export class FileListResponseDto extends PartialType(ResponseDto) {
   request: string;
   timestamp: string;
   message: File[];
-}
-
-export class S3RemoveFileDto {
-  filename: string;
-  versionId?: string;
-}
-export class S3RemoveFilesDto {
-  deleteObject: [
-    {
-      Key: string;
-      VersionId: string;
-    },
-  ];
 }

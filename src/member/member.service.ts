@@ -29,14 +29,10 @@ import {
   EmailResultDto,
   EmailValidateDto,
   EmailValidateResponseDto,
-  LoginDto,
-  LoginResponseDto,
   MemberCountResponseDto,
   MemberIdDto,
   MemberListPageDto,
   MemberListResponseDto,
-  MemberRefreshDto,
-  MemberRefreshResponseDto,
   MemberResponseDto,
   SendValidationDto,
   SendValidationResponseDto,
@@ -57,12 +53,12 @@ import { EmailService } from '../common/chat/email.service';
 import { ConfigService } from '@nestjs/config';
 import { RolesEnum } from '../common/auth/roles.enum';
 import { canCompleteEmailValidation, changesEmail } from './email-validation';
-import { buildValidationEmail, hashRefreshToken } from './member-credentials';
+import {
+  buildValidationEmail,
+  escapeHtml,
+  revokedSessions,
+} from './member-credentials';
 import { roleChangeRejection } from './member-role';
-import { randomUUID } from 'crypto';
-
-// Compared when the login ID is unknown so both failures take the same time
-const UNKNOWN_MEMBER_PASSWORD_HASH = bcrypt.hashSync(randomUUID(), 10);
 
 @Injectable()
 export class MemberService {
@@ -109,17 +105,9 @@ export class MemberService {
   async sendValidation(
     sendValidationDto: SendValidationDto,
   ): Promise<SendValidationResponseDto> {
-    const publicBaseUrl = this.configService.get<string>('PUBLIC_BASE_URL');
-    if (!publicBaseUrl) {
-      throw new ServiceUnavailableException({
-        message:
-          'PUBLIC_BASE_URL이 설정되지 않아 인증 메일을 보낼 수 없습니다.',
-      });
-    }
-
     // Look up the member
     const member: Member = await this.memberRepository.findOne({
-      select: { id: true },
+      select: { id: true, email: true, username: true },
       where: {
         email: sendValidationDto.email,
         username: sendValidationDto.username,
@@ -133,31 +121,52 @@ export class MemberService {
       });
     }
 
-    // Issue the JWT token
+    // Build the DTO used for the Swagger docs
+    const sendValidationResponseDto: SendValidationResponseDto =
+      new SendValidationResponseDto();
+    sendValidationResponseDto.message = await this.sendValidationEmail(member);
+
+    return sendValidationResponseDto;
+  }
+
+  /**
+   * Issue a verification token and email it to the member
+   *
+   * @param {Pick<Member, 'id' | 'email' | 'username'>} member
+   * @return {Promise<EmailResultDto>}
+   */
+  async sendValidationEmail(
+    member: Pick<Member, 'id' | 'email' | 'username'>,
+  ): Promise<EmailResultDto> {
+    const publicBaseUrl = this.configService.get<string>('PUBLIC_BASE_URL');
+    if (!publicBaseUrl) {
+      throw new ServiceUnavailableException({
+        message:
+          'PUBLIC_BASE_URL이 설정되지 않아 인증 메일을 보낼 수 없습니다.',
+        public: true,
+      });
+    }
+
     const validationToken = await this.jwtService.signAsync(
-      { id: member.id, email: sendValidationDto.email },
+      { id: member.id, email: member.email },
       {
         secret: this.configService.get('JWT_EMAIL_VALIDATION_SECRET_KEY'),
         expiresIn: this.configService.get('JWT_EMAIL_VALIDATION_EXPIRES_TIME'),
       },
     );
 
-    const emailResult: EmailResultDto = await this.emailService.sendEmail(
-      sendValidationDto.email,
-      '[SAMPLE] Confirm your email address',
+    const appName = this.configService.get<string>('APP_NAME');
+
+    return this.emailService.sendEmail(
+      member.email,
+      `[${appName}] Confirm your email address`,
       buildValidationEmail(
-        sendValidationDto.username,
+        appName,
+        member.username,
         publicBaseUrl,
         validationToken,
       ),
     );
-
-    // Build the DTO used for the Swagger docs
-    const sendValidationResponseDto: SendValidationResponseDto =
-      new SendValidationResponseDto();
-    sendValidationResponseDto.message = emailResult;
-
-    return sendValidationResponseDto;
   }
 
   /**
@@ -214,145 +223,6 @@ export class MemberService {
     emailValidateResponseDto.message = { affectedRows: updateResult.affected };
 
     return emailValidateResponseDto;
-  }
-
-  /**
-   * Log in
-   *
-   * @param {LoginDto} loginDto - Data required to log in
-   * @return {Promise<LoginResponseDto>} - Issues tokens
-   */
-  async login(loginDto: LoginDto): Promise<LoginResponseDto> {
-    // Look up the member
-    const member: Member = await this.memberRepository.findOne({
-      select: { id: true, username: true, role: true, password: true },
-      where: { loginId: loginDto.loginId },
-      withDeleted: false,
-    });
-
-    // Compare the given password against the stored one
-    const passwordCompare: boolean = await bcrypt.compare(
-      loginDto.password,
-      member?.password ?? UNKNOWN_MEMBER_PASSWORD_HASH,
-    );
-
-    // The same response for an unknown ID and a wrong password
-    if (!member || !passwordCompare) {
-      throw new UnauthorizedException({
-        message: '아이디 또는 패스워드가 일치하지 않습니다.',
-      });
-    }
-
-    // Issue a JWT token carrying id, username, and role
-    const accessToken = await this.jwtService.signAsync(
-      {
-        id: member.id,
-        username: member.username,
-        role: member.role,
-      },
-      {
-        secret: this.configService.get('JWT_ACCESS_SECRET_KEY'),
-        expiresIn: this.configService.get('JWT_ACCESS_EXPIRES_TIME'),
-      },
-    );
-
-    // Refresh token used to reissue the access token
-    const refreshToken = await this.jwtService.signAsync(
-      { jti: randomUUID() },
-      {
-        secret: this.configService.get('JWT_REFRESH_SECRET_KEY'),
-        expiresIn: this.configService.get('JWT_REFRESH_EXPIRES_TIME'),
-      },
-    );
-
-    // Update the stored refresh token digest
-    await this.memberRepository.update(
-      { id: member.id },
-      { refreshToken: hashRefreshToken(refreshToken) },
-    );
-
-    // Build the DTO used for the Swagger docs
-    const loginResponseDto: LoginResponseDto = new LoginResponseDto();
-    loginResponseDto.message = { accessToken, refreshToken };
-
-    return loginResponseDto;
-  }
-
-  /**
-   * Request an access token refresh<br/>
-   * Refreshed only if the refresh token is valid
-   *
-   * @param {MemberRefreshDto} memberRefreshDto - Member ID key
-   * @return {Promise<MemberRefreshResponseDto>} - Access token refresh
-   */
-  async refresh(
-    memberRefreshDto: MemberRefreshDto,
-  ): Promise<MemberRefreshResponseDto> {
-    // Look up the member
-    const member = await this.memberRepository.findOne({
-      select: { id: true, username: true, role: true, refreshToken: true },
-      where: {
-        id: memberRefreshDto.id,
-      },
-    });
-
-    // If the member does not exist
-    if (!member) {
-      throw new BadRequestException({
-        message: '멤버가 삭제되었거나 존재하지 않습니다.',
-      });
-    }
-
-    // If the member has no refresh token
-    if (!member.refreshToken) {
-      throw new UnauthorizedException({
-        message: '리프레시 토큰이 존재하지 않습니다. 다시 로그인해주세요.',
-      });
-    }
-
-    // If the refresh token does not match
-    if (
-      member.refreshToken !== hashRefreshToken(memberRefreshDto.refreshToken)
-    ) {
-      throw new UnauthorizedException({
-        message: '리프레시 토큰이 일치하지 않습니다.',
-      });
-    }
-
-    // Refresh token payload
-    const refreshTokenPayload = await this.jwtService.verifyAsync(
-      memberRefreshDto.refreshToken,
-      {
-        secret: this.configService.get<string>('JWT_REFRESH_SECRET_KEY'),
-      },
-    );
-
-    // If the refresh token has expired
-    if (refreshTokenPayload.exp < Date.now() / 1000) {
-      throw new UnauthorizedException({
-        message: '리프레시 토큰이 만료되었습니다. 다시 로그인해주세요.',
-      });
-    }
-
-    // Reissue the access token
-    const newAccessToken = await this.jwtService.signAsync(
-      {
-        id: member.id,
-        username: member.username,
-        role: member.role,
-      },
-      {
-        secret: this.configService.get('JWT_ACCESS_SECRET_KEY'),
-        expiresIn: this.configService.get('JWT_ACCESS_EXPIRES_TIME'),
-      },
-    );
-
-    // Build the DTO used for the Swagger docs
-    const memberRefreshResponseDto: MemberRefreshResponseDto =
-      new MemberRefreshResponseDto();
-    memberRefreshResponseDto.message = { accessToken: newAccessToken };
-
-    return memberRefreshResponseDto;
   }
 
   /**
@@ -449,44 +319,6 @@ export class MemberService {
     memberResponseDto.message = member;
 
     return memberResponseDto;
-  }
-
-  /**
-   * Member info by ID key (using the query builder)
-   * Also includes menu and branch authority info
-   *
-   * @param {MemberIdDto} memberIdDto - Member ID key
-   * @return {Promise<Member[]>}
-   */
-  async getMemberByIdUsingBuilder(memberIdDto: MemberIdDto): Promise<Member[]> {
-    // Look up the member (each row comes back as its own object)
-    const member: Member[] = await this.memberRepository
-      .createQueryBuilder('member')
-      .leftJoin(Authority, 'auth', 'member.id = auth.memberId')
-      .leftJoin(Menu, 'menu', 'auth.menuId = menu.id')
-      .leftJoin(Branch, 'branch', 'auth.branchId = branch.id')
-      .select([
-        'member.id AS memberId',
-        'member.loginId AS loginId',
-        'member.username AS username',
-        'member.role AS role',
-        'branch.id AS branchId',
-        'branch.name AS branchName',
-        'menu.id AS menuId',
-        'menu.title AS menuTitle',
-      ])
-      .where('member.id = :id', { id: memberIdDto.id })
-      .withDeleted()
-      .getRawMany();
-
-    // Throw an error if no member was found
-    if (member.length === 0) {
-      throw new BadRequestException({
-        message: '멤버가 존재하지 않습니다.',
-      });
-    }
-
-    return member;
   }
 
   /**
@@ -631,6 +463,7 @@ export class MemberService {
         updateMemberDto.password,
         10,
       );
+      Object.assign(updateMemberDto, revokedSessions());
     }
 
     // Remove fields not part of the update entity
@@ -776,13 +609,13 @@ export class MemberService {
    *
    * @param {MemberIdDto} memberIdDto - Member ID key
    * @param {UpdateMemberRoleDto} updateMemberRoleDto - New role
-   * @param {string} authorization
+   * @param {number} requesterId - Member making the change
    * @return {Promise<UpdateMemberResponseDto>} - Update result
    */
   async updateMemberRoleById(
     memberIdDto: MemberIdDto,
     updateMemberRoleDto: UpdateMemberRoleDto,
-    authorization: string,
+    requesterId: number,
   ): Promise<UpdateMemberResponseDto> {
     const member: Member = await this.memberRepository.findOne({
       select: { id: true, emailValidateAt: true },
@@ -795,15 +628,9 @@ export class MemberService {
       });
     }
 
-    // Info of the member who made the request (from the token)
-    const [, token] = authorization?.split(' ') ?? [];
-    const payload = await this.jwtService.verifyAsync(token, {
-      secret: this.configService.get<string>('JWT_ACCESS_SECRET_KEY'),
-    });
-
     const rejection = roleChangeRejection({
       targetId: member.id,
-      requesterId: payload.id,
+      requesterId,
       nextRole: updateMemberRoleDto.role,
       emailValidateAt: member.emailValidateAt,
     });
@@ -829,13 +656,20 @@ export class MemberService {
    * Only updates the deletedAt value
    *
    * @param {MemberIdDto} memberIdDto - Member ID key
-   * @param {string} authorization
+   * @param {number} requesterId - Member making the change
    * @return {Promise<UpdateMemberResponseDto>} - Delete result
    */
   async removeMemberById(
     memberIdDto: MemberIdDto,
-    authorization: string,
+    requesterId: number,
   ): Promise<UpdateMemberResponseDto> {
+    // Keeps the last administrator from locking everyone out
+    if (Number(memberIdDto.id) === requesterId) {
+      throw new BadRequestException({
+        message: '자신의 계정은 삭제할 수 없습니다.',
+      });
+    }
+
     // Look up the member
     const member: Member = await this.memberRepository.findOneBy({
       id: memberIdDto.id,
@@ -848,59 +682,22 @@ export class MemberService {
       });
     }
 
-    // Result of the member info update
-    let validationUpdateResult: UpdateResult;
-
-    // Only reset the verification if not already in the deny state
-    if (member.role !== RolesEnum.deny) {
-      // Update the member info
-      validationUpdateResult = await this.memberRepository.update(
-        { id: member.id },
-        {
-          emailValidateAt: null,
-        },
-      );
-    }
-
-    // Member info update failed
-    if (validationUpdateResult?.affected === 0) {
-      throw new ServiceUnavailableException({
-        message: '멤버 정보 수정에 실패했습니다.',
-      });
-    }
+    // Tokens issued before the removal must not work again after a restore
+    await this.memberRepository.update(
+      { id: member.id },
+      {
+        ...revokedSessions(),
+        ...(member.role !== RolesEnum.deny ? { emailValidateAt: null } : {}),
+      },
+    );
 
     // Delete the member by ID key
     const result: UpdateResult = await this.memberRepository.softDelete(
       memberIdDto.id,
     );
 
-    // Used when a notification is needed
     if (result.affected > 0) {
-      // Split the JWT token type and value
-      const [type, token] = authorization?.split(' ') ?? [];
-      const jwtToken = type === 'Bearer' ? token : undefined;
-
-      // Info of the member who made the request (from the token)
-      const payload = await this.jwtService.verifyAsync(jwtToken, {
-        secret: this.configService.get<string>('JWT_ACCESS_SECRET_KEY'),
-      });
-
-      // Send the email
-      await this.emailService.sendEmail(
-        'example@example.com',
-        '[SAMPLE] Member removed in NestJS API',
-        `${member.username}(${member.id}) member removed by ${payload?.username}(${payload?.id})`,
-      );
-
-      // Send the Slack message
-      await this.slackService.sendSlack(
-        this.configService.get<string>('SLACK_WEBHOOK'),
-        this.configService.get<string>('SLACK_CHANNEL'),
-        `[SAMPLE]\n` +
-          `Member removed in NestJS API\n` +
-          `${member.username}(${member.id}) member removed by ${payload?.username}(${payload?.id})`,
-        this.configService.get<string>('SLACK_TOKEN'),
-      );
+      this.notifyMemberRemoved(member, requesterId);
     }
 
     // Build the DTO used for the Swagger docs
@@ -909,6 +706,45 @@ export class MemberService {
     updateMemberResponseDto.message = { affectedRows: result.affected };
 
     return updateMemberResponseDto;
+  }
+
+  /**
+   * The removal already happened, so a failed notification is only logged
+   */
+  private notifyMemberRemoved(member: Member, requesterId: number): void {
+    const appName = this.configService.get<string>('APP_NAME');
+    const text = `${member.username}(${member.id}) member removed by member ${requesterId}`;
+    const adminEmail = this.configService.get<string>('ADMIN_EMAIL');
+
+    const notifications: Promise<unknown>[] = [
+      this.slackService.sendSlack(
+        this.configService.get<string>('SLACK_WEBHOOK'),
+        this.configService.get<string>('SLACK_CHANNEL'),
+        `[${appName}]\n${text}`,
+        this.configService.get<string>('SLACK_TOKEN'),
+      ),
+    ];
+
+    if (adminEmail) {
+      notifications.push(
+        this.emailService.sendEmail(
+          adminEmail,
+          `[${appName}] Member removed`,
+          escapeHtml(text),
+        ),
+      );
+    }
+
+    void Promise.allSettled(notifications).then((results) => {
+      for (const result of results) {
+        if (result.status === 'rejected') {
+          this.logger.error(
+            'Member removal notification failed',
+            result.reason?.stack,
+          );
+        }
+      }
+    });
   }
 
   /**
@@ -934,27 +770,6 @@ export class MemberService {
     if (member === null) {
       throw new BadRequestException({
         message: '멤버가 존재하지 않습니다.',
-      });
-    }
-
-    // Result of the member info update
-    let validationUpdateResult: UpdateResult;
-
-    // Only reset the verification if not already in the deny state
-    if (member.role !== RolesEnum.deny) {
-      // Update the member info
-      validationUpdateResult = await this.memberRepository.update(
-        { id: member.id },
-        {
-          emailValidateAt: null,
-        },
-      );
-    }
-
-    // Member info update failed
-    if (validationUpdateResult?.affected === 0) {
-      throw new ServiceUnavailableException({
-        message: '멤버 정보 수정에 실패했습니다.',
       });
     }
 

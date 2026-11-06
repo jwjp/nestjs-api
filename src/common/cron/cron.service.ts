@@ -1,16 +1,13 @@
-import {
-  Injectable,
-  InternalServerErrorException,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { SchedulerRegistry } from '@nestjs/schedule';
-import * as fs from 'fs';
+import { promises as fs } from 'fs';
 import * as path from 'path';
 import { S3Service } from '../file/s3.service';
 import { SlackService } from '../chat/slack.service';
 import { ConfigService } from '@nestjs/config';
-import { PutObjectCommandInput } from '@aws-sdk/client-s3/dist-types/commands/PutObjectCommand';
 import { PutObjectCommandOutput } from '@aws-sdk/client-s3';
+
+const MAX_LOG_UPLOAD_BYTES = 1024 * 1024 * 10;
 
 /**
  * Registering, removing, and stopping schedules can be handled dynamically through the controller
@@ -78,91 +75,59 @@ export class CronService {
   }
 
   /**
-   * Uploads log files to S3 every day at 1am
-   * Sends a Slack message and skips the file if it is over 10MB
+   * Uploads log files to S3 and empties each one only after its upload succeeds<br/>
+   * A file over 10MB is skipped with a Slack message<br/>
    * Uploaded log files are auto-deleted via the S3 bucket's lifecycle rules
    *
-   * @return {Promise<PutObjectCommandOutput[]>} - S3 upload result
+   * @param {string} logsPath - Log file folder
+   * @return {Promise<PutObjectCommandOutput[]>} - S3 upload results
    */
-  async logHandling(): Promise<PutObjectCommandOutput[]> {
-    // Project root folder
-    const rootPath: string = path.join(__dirname + '/../../../');
+  async logHandling(
+    logsPath: string = path.resolve('logs'),
+  ): Promise<PutObjectCommandOutput[]> {
+    const names: string[] = await fs.readdir(logsPath).catch(() => []);
+    const date = new Date().toISOString().slice(0, 10);
+    const results: PutObjectCommandOutput[] = [];
 
-    // If the folder does not exist
-    if (
-      !fs.existsSync(rootPath) &&
-      rootPath.split('/').filter(Boolean).pop() !==
-        this.configService.get('ROOT_DIRECTORY')
-    ) {
-      throw new InternalServerErrorException({
-        message: '폴더 경로에 대한 환경변수를 확인해주세요.',
-      });
-    }
-
-    // Log file root folder
-    const logsPath = path.join(rootPath, 'logs');
-
-    // Only look at log files
-    const files: string[] = fs
-      .readdirSync(logsPath)
-      .filter((file) => path.extname(file).toLowerCase() === '.log');
-
-    // Array for uploading to the S3 bucket in one batch
-    const putObjectInputs: PutObjectCommandInput[] = [];
-
-    // Check file info
-    for (const i in files) {
-      // File path and name
-      const file = path.join('logs', files[i]);
-
-      // File stats
-      const stat: fs.Stats = fs.lstatSync(file);
-
-      // Difference between now and the file creation time (in ms)
-      const diffMs: number = Date.now() - parseInt(String(stat.birthtimeMs));
-
-      // 1000: convert ms to seconds / 3600(sec): 1 hour / 24(hours): 1 day
-      const diffDay: number = diffMs / 1000 / 3600 / 24;
-
-      // If the log file is over 10MB, send a Slack message and skip it
-      if (stat.size > 1024 * 1024 * 10) {
-        await this.slackService.sendSlack(
-          this.configService.get('SLACK_WEBHOOK'),
-          this.configService.get('SLACK_CHANNEL'),
-          `${file} file is over 10Mb`,
-          this.configService.get('SLACK_TOKEN'),
-        );
-
+    for (const name of names) {
+      if (path.extname(name).toLowerCase() !== '.log') {
         continue;
       }
 
-      // Files older than a day and larger than 0 bytes
-      if (diffDay > 1 && stat.size > 0) {
-        const fileStream: fs.ReadStream = fs.createReadStream(file);
+      const file = path.join(logsPath, name);
 
-        // Add the S3 input parameters to the array
-        putObjectInputs.push({
-          Bucket: this.configService.get<string>('AWS_S3_BUCKET'),
-          Key: 'logs/' + files[i],
-          Body: fileStream,
-        });
+      try {
+        const { size } = await fs.stat(file);
+
+        if (size === 0) {
+          continue;
+        }
+
+        if (size > MAX_LOG_UPLOAD_BYTES) {
+          await this.slackService.sendSlack(
+            this.configService.get('SLACK_WEBHOOK'),
+            this.configService.get('SLACK_CHANNEL'),
+            `${name} file is over 10Mb`,
+            this.configService.get('SLACK_TOKEN'),
+          );
+          continue;
+        }
+
+        results.push(
+          await this.s3Service.putObjectFiles({
+            Bucket: this.configService.get<string>('AWS_S3_BUCKET'),
+            Key: `logs/${date}/${name}`,
+            Body: await fs.readFile(file),
+          }),
+        );
+
+        // Truncate instead of deleting, because winston keeps the file open
+        await fs.truncate(file);
+      } catch (err) {
+        this.logger.error(`Log upload failed: ${name}`, err?.stack);
       }
     }
 
-    // Upload to S3 and reset the existing files
-    return await Promise.all(
-      putObjectInputs.map((input) => {
-        for (const i in files) {
-          // File path and name
-          const file = path.join('logs', files[i]);
-
-          // Delete and recreate the file after the upload completes
-          fs.unlinkSync(file);
-          fs.writeFileSync(file, '');
-        }
-
-        return this.s3Service.putObjectFiles(input);
-      }),
-    );
+    return results;
   }
 }

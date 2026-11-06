@@ -9,10 +9,14 @@ import {
   Patch,
   Post,
   Query,
-  Req,
 } from '@nestjs/common';
 import { MemberService } from './member.service';
-import { Public, Roles } from 'src/common/auth/auth.decorator';
+import {
+  AuthenticatedMember,
+  CurrentMember,
+  Public,
+  Roles,
+} from '../common/auth/auth.decorator';
 import {
   ConfirmEmailDto,
   ConfirmEmailResponseDto,
@@ -20,14 +24,10 @@ import {
   ConfirmIdResponseDto,
   EmailValidateDto,
   EmailValidateResponseDto,
-  LoginDto,
-  LoginResponseDto,
   MemberCountResponseDto,
   MemberIdDto,
   MemberListPageDto,
   MemberListResponseDto,
-  MemberRefreshDto,
-  MemberRefreshResponseDto,
   MemberResponseDto,
   SendValidationDto,
   SendValidationResponseDto,
@@ -39,7 +39,6 @@ import {
 } from './dto/member.dto';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { ResponseDto, ResponseErrorDto } from '../common/auth/response.dto';
-import { Request } from 'express';
 
 @ApiTags('Members')
 @ApiResponse({
@@ -98,38 +97,6 @@ export class MemberController {
     @Param() emailValidateDto: EmailValidateDto,
   ): Promise<EmailValidateResponseDto> {
     return await this.memberService.emailValidate(emailValidateDto);
-  }
-
-  /**
-   * Log in
-   *
-   * @param {LoginDto} loginDto - Data required to log in
-   * @return {Promise<LoginResponseDto>} - Issues tokens
-   */
-  @ApiOperation({ security: [], summary: 'Log in' })
-  @Public()
-  @Post('login')
-  login(@Body() loginDto: LoginDto): Promise<LoginResponseDto> {
-    return this.memberService.login(loginDto);
-  }
-
-  /**
-   * Request an access token refresh<br/>
-   * Refreshed only if the refresh token is valid
-   *
-   * @param {MemberRefreshDto} memberRefreshDto - Member ID key
-   * @return {Promise<MemberRefreshResponseDto>} - Access token refresh
-   */
-  @ApiOperation({
-    security: [],
-    summary: 'Request a token refresh (using the refresh token)',
-  })
-  @Public()
-  @Post('refresh')
-  refresh(
-    @Body() memberRefreshDto: MemberRefreshDto,
-  ): Promise<MemberRefreshResponseDto> {
-    return this.memberService.refresh(memberRefreshDto);
   }
 
   /**
@@ -251,7 +218,7 @@ export class MemberController {
    *
    * @param {MemberIdDto} memberIdDto - Member ID key
    * @param {UpdateMemberRoleDto} updateMemberRoleDto - New role
-   * @param {Request} request
+   * @param {AuthenticatedMember} requester
    * @return {Promise<UpdateMemberResponseDto>} - Update result
    */
   @ApiOperation({ summary: 'Change member role' })
@@ -259,12 +226,12 @@ export class MemberController {
   updateMemberRoleById(
     @Param() memberIdDto: MemberIdDto,
     @Body() updateMemberRoleDto: UpdateMemberRoleDto,
-    @Req() request: Request,
+    @CurrentMember() requester: AuthenticatedMember,
   ): Promise<UpdateMemberResponseDto> {
     return this.memberService.updateMemberRoleById(
       memberIdDto,
       updateMemberRoleDto,
-      request.headers.authorization,
+      requester.id,
     );
   }
 
@@ -273,19 +240,16 @@ export class MemberController {
    * Only updates the deletedAt value
    *
    * @param {MemberIdDto} memberIdDto - Member ID key
-   * @param {Request} request
+   * @param {AuthenticatedMember} requester
    * @return {Promise<UpdateMemberResponseDto>} - Delete result
    */
   @ApiOperation({ summary: 'Delete member' })
   @Delete(':id')
   removeMemberById(
     @Param() memberIdDto: MemberIdDto,
-    @Req() request: Request,
+    @CurrentMember() requester: AuthenticatedMember,
   ): Promise<UpdateMemberResponseDto> {
-    return this.memberService.removeMemberById(
-      memberIdDto,
-      request.headers.authorization,
-    );
+    return this.memberService.removeMemberById(memberIdDto, requester.id);
   }
 
   /**

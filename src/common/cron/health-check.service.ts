@@ -25,9 +25,11 @@ export class HealthCheckService {
     try {
       await this.health.check([
         () =>
-          this.http.pingCheck('http', 'http://localhost:3000', {
-            timeout: 60,
-          }),
+          this.http.pingCheck(
+            'http',
+            `http://localhost:${Number(process.env.PORT) || 3000}`,
+            { timeout: 60 },
+          ),
         () => this.db.pingCheck('database', { timeout: 60 }),
         () =>
           this.disk.checkStorage('storage', {
@@ -57,6 +59,7 @@ export class HealthCheckService {
       // This endpoint is public, so the failing component only goes to Slack
       throw new ServiceUnavailableException({
         message: '서비스 상태가 불안정합니다.',
+        public: true,
         stack: err.stack,
       });
     }

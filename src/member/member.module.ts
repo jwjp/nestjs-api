@@ -7,6 +7,8 @@ import {
 } from '@nestjs/common';
 import { MemberService } from './member.service';
 import { MemberController } from './member.controller';
+import { MemberAuthController } from './member-auth.controller';
+import { MemberAuthService } from './member-auth.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Member } from './entities/member.entity';
 import { JwtModule } from '@nestjs/jwt';
@@ -22,9 +24,15 @@ import { BranchService } from './branch.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Member, Menu, Branch]), JwtModule],
-  controllers: [MemberController, MenuController, BranchController],
+  controllers: [
+    MemberAuthController,
+    MemberController,
+    MenuController,
+    BranchController,
+  ],
   providers: [
     MemberService,
+    MemberAuthService,
     Logger,
     EmailService,
     SlackService,

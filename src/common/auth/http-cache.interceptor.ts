@@ -8,19 +8,28 @@ export class HttpCacheInterceptor extends CacheInterceptor {
     const { httpAdapter } = this.httpAdapterHost;
 
     // Only GET endpoints can be cached
-    const isGetRequest: boolean =
-      httpAdapter.getRequestMethod(request) === 'GET';
-    const excludePaths: string[] = [
-      // Paths excluded from caching
-      '/',
-    ];
+    if (httpAdapter.getRequestMethod(request) !== 'GET') {
+      return undefined;
+    }
+
+    // The cache key is only the URL, so one member's response must never be
+    // served to another
+    if (request.headers.authorization) {
+      return undefined;
+    }
+
+    const url: string = httpAdapter.getRequestUrl(request);
+
+    // Paths excluded from caching
     if (
-      !isGetRequest ||
-      (isGetRequest &&
-        excludePaths.includes(httpAdapter.getRequestUrl(request)))
+      url === '/' ||
+      url === '/cron/health-check' ||
+      // Completes a verification, so it has to reach the handler every time
+      url.startsWith('/members/validate/')
     ) {
       return undefined;
     }
-    return httpAdapter.getRequestUrl(request);
+
+    return url;
   }
 }
