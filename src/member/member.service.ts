@@ -78,120 +78,20 @@ export class MemberService {
    * @return {Promise<SignUpResponseDto>}
    */
   async signUp(signUpDto: SignUpDto): Promise<SignUpResponseDto> {
-    const { branchIds, menuIds } = signUpDto;
     signUpDto.password = await bcrypt.hash(signUpDto.password, 10);
 
-    const queryRunner: QueryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
+    // Access to branches and menus is assigned later by an administrator
+    const createdMember: SignUpDto & Member =
+      await this.memberRepository.save(signUpDto);
 
-    // Start the transaction
-    await queryRunner.startTransaction();
+    // Remove the field we don't want to keep around
+    delete createdMember.password;
 
-    try {
-      // Insert the member
-      const createdMember: SignUpDto & Member = await queryRunner.manager.save(
-        Member,
-        signUpDto,
-      );
+    // Build the DTO used for the Swagger docs
+    const signUpResponseDto: SignUpResponseDto = new SignUpResponseDto();
+    signUpResponseDto.message = createdMember;
 
-      // Remove the field we don't want to keep around
-      delete createdMember.password;
-
-      // Build the authority array (for validation and insertion)
-      const authority: AuthorityDto[] = [];
-
-      // If branches were given without menus, or menus without branches
-      if (
-        (branchIds.length && !menuIds.length) ||
-        (!branchIds.length && menuIds.length)
-      ) {
-        throw new BadRequestException({
-          message: '지점과 메뉴를 1개 이상 선택해주세요.',
-        });
-      }
-
-      // Populate the authority array
-      for (const i in branchIds) {
-        for (const j in menuIds) {
-          // Entries for validation and insertion
-          authority.push({
-            branchId: branchIds[i],
-            menuId: menuIds[j],
-            memberId: createdMember.id,
-          });
-        }
-      }
-
-      // Instantiate for authority array validation
-      const authorityInstance = plainToInstance(AuthorityDto, authority, {
-        excludeExtraneousValues: true,
-      });
-
-      // Validate the authority array
-      for (const auth of authorityInstance) {
-        const { constraints } = (await validate(auth)).pop() || {};
-        if (constraints) {
-          throw new BadRequestException({
-            message: Object.values(constraints),
-          });
-        }
-      }
-
-      // Count of branches that are not deleted
-      const branchIdCount: number = await queryRunner.manager.countBy(Branch, {
-        id: In(branchIds),
-      });
-
-      // Throw an error if any branch ID is deleted or does not exist
-      if (branchIdCount !== branchIds.length) {
-        throw new BadRequestException({
-          message: '삭제되었거나 존재하지 않는 지점을 선택하였습니다.',
-        });
-      }
-
-      // Count of menus that are not deleted
-      const menuIdCount: number = await queryRunner.manager.countBy(Menu, {
-        id: In(menuIds),
-      });
-
-      // Throw an error if any menu ID is deleted or does not exist
-      if (menuIdCount !== menuIds.length) {
-        throw new BadRequestException({
-          message: '삭제되었거나 존재하지 않는 메뉴를 선택하였습니다.',
-        });
-      }
-
-      // Insert the authority rows
-      if (authority.length) {
-        await queryRunner.manager.insert(Authority, authority);
-      }
-
-      // Commit the transaction
-      await queryRunner.commitTransaction();
-
-      // Build the DTO used for the Swagger docs
-      const signUpResponseDto: SignUpResponseDto = new SignUpResponseDto();
-      signUpResponseDto.message = createdMember;
-
-      return signUpResponseDto;
-    } catch (err) {
-      // Roll back the transaction
-      await queryRunner.rollbackTransaction();
-
-      if (err instanceof BadRequestException) {
-        throw new BadRequestException(err.getResponse());
-      } else if (err instanceof QueryFailedError) {
-        throw new QueryFailedError(err.query, err.parameters, err.driverError);
-      }
-
-      throw new ServiceUnavailableException({
-        name: err.name,
-        message: err.message,
-      });
-    } finally {
-      // Release the DB connection
-      await queryRunner.release();
-    }
+    return signUpResponseDto;
   }
 
   /**

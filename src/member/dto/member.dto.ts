@@ -109,7 +109,12 @@ export class MemberDto {
 /**
  * Data required to sign up
  */
-export class SignUpDto extends MemberDto {
+export class SignUpDto extends MemberDto {}
+
+/**
+ * Branch and menu access, assigned by an administrator
+ */
+export class MemberAuthorityDto {
   /**
    * Branch IDs
    * @example [1, 2, 3]
@@ -357,7 +362,7 @@ export class MemberResponseDto extends PartialType(ResponseDto) {
  * DTO for updating a member
  */
 export class UpdateMemberDto extends PartialType(
-  OmitType(SignUpDto, ['loginId']),
+  IntersectionType(OmitType(MemberDto, ['loginId']), MemberAuthorityDto),
 ) {}
 
 /**

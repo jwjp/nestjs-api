@@ -101,7 +101,8 @@ import { AuthInterceptor } from './common/auth/auth.interceptor';
       database: process.env.DB_SCHEMA,
       entities: [process.env.DB_ENTITIES],
       charset: process.env.DB_CHARSET,
-      synchronize: true,
+      // Never alter a production schema automatically
+      synchronize: ['local', 'dev'].includes(process.env.NODE_ENV),
       timezone: '+09:00',
       logger: new TypeOrmLogger('all'),
       maxQueryExecutionTime: 1000,

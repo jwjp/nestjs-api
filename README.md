@@ -48,8 +48,12 @@
 | pm2 start ecosystem.config.js                 | pm2 start command [(see options)](https://pm2.keymetrics.io/docs/usage/quick-start/) |
 
 ### Environment Variables
+`synchronize` runs only when `NODE_ENV` is `local` or `dev`. Apply schema changes to `prod` with your own migration step.
+
 ```conf
 ROOT_DIRECTORY=sample-test
+# Behind one reverse proxy such as Nginx, use 1. Leave empty when clients connect directly.
+TRUST_PROXY=1
 
 DB_HOST=localhost
 DB_PORT=3306

@@ -6,6 +6,7 @@ import * as winston from 'winston';
 import * as basicAuth from 'express-basic-auth';
 import { globalMiddleware } from './common/auth/auth.middleware';
 import { AuthFilter } from './common/auth/auth.filter';
+import { parseTrustProxy } from './common/auth/trust-proxy';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as cookieParser from 'cookie-parser';
 import helmet from 'helmet';
@@ -51,8 +52,8 @@ async function bootstrap() {
   // https://github.com/expressjs/cors
   app.enableCors();
 
-  // Trust the proxy
-  app.set('trust proxy', true);
+  // Trust only the configured proxy
+  app.set('trust proxy', parseTrustProxy(process.env.TRUST_PROXY));
 
   // Only enable Swagger in non-production environments
   if (['local', 'dev'].includes(process.env.NODE_ENV)) {
