@@ -6,12 +6,14 @@ import {
   Param,
   Post,
   Query,
+  UnsupportedMediaTypeException,
   UploadedFiles,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileService } from './file.service';
-import { Public } from '../auth/auth.decorator';
+import { Roles } from '../auth/auth.decorator';
 import { FilesInterceptor } from '@nestjs/platform-express';
+import { isAllowedUpload } from './allowed-mime.array';
 import {
   GetS3FileByBranchId,
   GetS3FileByFileId,
@@ -20,7 +22,7 @@ import {
 } from './dto/file.dto';
 
 @ApiTags('Files')
-@Public()
+@Roles('admin')
 @Controller('files')
 export class FileController {
   constructor(private readonly fileService: FileService) {}
@@ -36,6 +38,15 @@ export class FileController {
   @UseInterceptors(
     FilesInterceptor('files', 10, {
       limits: { fileSize: 10 * 1024 * 1024 },
+      fileFilter: (req, file, callback) => {
+        if (!isAllowedUpload(file.mimetype, file.originalname)) {
+          return callback(
+            new UnsupportedMediaTypeException('File type not allowed'),
+            false,
+          );
+        }
+        callback(null, true);
+      },
     }),
   )
   @Post('/s3')

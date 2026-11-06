@@ -10,6 +10,7 @@ import { QueryFailedError } from 'typeorm';
 import { ResponseDto } from './response.dto';
 import { JsonWebTokenError } from '@nestjs/jwt';
 import { ThrottlerException } from '@nestjs/throttler';
+import { redactPath } from './log-redaction';
 
 @Catch()
 export class AuthFilter implements ExceptionFilter {
@@ -62,6 +63,7 @@ export class AuthFilter implements ExceptionFilter {
 
     // Log data for developers to inspect
     const debuggingLog = Object.assign({}, responseBody, {
+      request: redactPath(responseBody.request),
       query: exception['sql'] ?? undefined,
       stack: exception['response']?.stack ?? exception['stack'],
       messageData: exception['response']?.message,

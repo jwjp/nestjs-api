@@ -1,5 +1,6 @@
 import { Injectable, Logger, NestMiddleware } from '@nestjs/common';
 import { NextFunction, Request, Response } from 'express';
+import { redactPath, redactSensitive } from './log-redaction';
 
 // Middleware for use in specific modules
 @Injectable()
@@ -11,7 +12,7 @@ export class AuthMiddleware implements NestMiddleware {
     const { ip, ips, method, path: url } = req;
     const userAgent: string = req.get('user-agent') || '';
     const requestData: string = JSON.stringify(
-      method === 'GET' ? req.query : req.body,
+      redactSensitive(method === 'GET' ? req.query : req.body),
     );
 
     // When app.set('trust proxy', true) is configured, use ip as-is
@@ -20,7 +21,9 @@ export class AuthMiddleware implements NestMiddleware {
 
     this.logger.log({
       level: 'http',
-      message: `${method} ${url} - ${userAgent} -- IP: ${proxyIp} -- RequestData: ${requestData}`,
+      message: `${method} ${redactPath(
+        url,
+      )} - ${userAgent} -- IP: ${proxyIp} -- RequestData: ${requestData}`,
       context: 'AuthMiddleware',
     });
 
@@ -47,12 +50,16 @@ export function globalMiddleware(
   res.on('close', () => {
     const { statusCode } = res;
     const contentLength = res.get('content-length') ?? 0;
-    const requestData = JSON.stringify(method === 'GET' ? req.query : req.body);
+    const requestData = JSON.stringify(
+      redactSensitive(method === 'GET' ? req.query : req.body),
+    );
     const delay = Date.now() - now;
 
     logger.log({
       level: 'http',
-      message: `${method} ${url} ${statusCode} ${contentLength} - ${userAgent} -- IP: ${proxyIp} -- RequestData: ${requestData} ${delay}ms`,
+      message: `${method} ${redactPath(
+        url,
+      )} ${statusCode} ${contentLength} - ${userAgent} -- IP: ${proxyIp} -- RequestData: ${requestData} ${delay}ms`,
       context: 'CloseResponse',
     });
   });

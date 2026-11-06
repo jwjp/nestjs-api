@@ -55,6 +55,7 @@ import { SlackService } from '../common/chat/slack.service';
 import { EmailService } from '../common/chat/email.service';
 import { ConfigService } from '@nestjs/config';
 import { RolesEnum } from '../common/auth/roles.enum';
+import { canCompleteEmailValidation } from './email-validation';
 import { Request } from 'express';
 
 @Injectable()
@@ -222,7 +223,7 @@ export class MemberService {
 
     // Issue the JWT token
     const validationToken = await this.jwtService.signAsync(
-      { id: member.id },
+      { id: member.id, email: sendValidationDto.email },
       {
         secret: this.configService.get('JWT_EMAIL_VALIDATION_SECRET_KEY'),
         expiresIn: this.configService.get('JWT_EMAIL_VALIDATION_EXPIRES_TIME'),
@@ -275,8 +276,24 @@ export class MemberService {
     }
 
     // Complete the email verification
+    const member: Member = await this.memberRepository.findOne({
+      select: { id: true, email: true, role: true, emailValidateAt: true },
+      where: { id: validationTokenPayload.id },
+    });
+
+    if (!canCompleteEmailValidation(member, validationTokenPayload.email)) {
+      throw new UnauthorizedException({
+        message: '유효하지 않은 이메일 인증 요청입니다.',
+      });
+    }
+
     const updateResult: UpdateResult = await this.memberRepository.update(
-      { id: validationTokenPayload.id },
+      {
+        id: member.id,
+        email: member.email,
+        role: RolesEnum.user,
+        emailValidateAt: IsNull(),
+      },
       { role: RolesEnum.admin, emailValidateAt: new Date() },
     );
 
