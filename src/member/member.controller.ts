@@ -74,16 +74,14 @@ export class MemberController {
    * Send the email verification token
    *
    * @param {SendValidationDto} sendValidationDto
-   * @param {Request} request
    * @return {Promise<SendValidationResponseDto>}
    */
   @ApiOperation({ summary: 'Send the email verification token' })
   @Post('validation')
   async sendValidation(
     @Body() sendValidationDto: SendValidationDto,
-    @Req() request: Request,
   ): Promise<SendValidationResponseDto> {
-    return await this.memberService.sendValidation(sendValidationDto, request);
+    return await this.memberService.sendValidation(sendValidationDto);
   }
 
   /**

@@ -56,6 +56,12 @@ import { AuthInterceptor } from './common/auth/auth.interceptor';
           JWT_EMAIL_VALIDATION_SECRET_KEY: Joi.string().required(),
           JWT_EMAIL_VALIDATION_EXPIRES_TIME: Joi.string().required(),
 
+          // Origin used in email links, such as https://api.example.com
+          // Verification emails are refused while this is unset
+          PUBLIC_BASE_URL: Joi.string()
+            .uri({ scheme: ['http', 'https'] })
+            .optional(),
+
           // Slack
           SLACK_CHANNEL: Joi.string().required(),
           SLACK_TOKEN: Joi.string().required(),

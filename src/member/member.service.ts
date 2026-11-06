@@ -56,7 +56,11 @@ import { EmailService } from '../common/chat/email.service';
 import { ConfigService } from '@nestjs/config';
 import { RolesEnum } from '../common/auth/roles.enum';
 import { canCompleteEmailValidation } from './email-validation';
-import { Request } from 'express';
+import { buildValidationEmail, hashRefreshToken } from './member-credentials';
+import { randomUUID } from 'crypto';
+
+// Compared when the login ID is unknown so both failures take the same time
+const UNKNOWN_MEMBER_PASSWORD_HASH = bcrypt.hashSync(randomUUID(), 10);
 
 @Injectable()
 export class MemberService {
@@ -98,13 +102,19 @@ export class MemberService {
    * Send the email verification token
    *
    * @param {SendValidationDto} sendValidationDto
-   * @param {Request} request
    * @return {Promise<SendValidationResponseDto>}
    */
   async sendValidation(
     sendValidationDto: SendValidationDto,
-    request: Request,
   ): Promise<SendValidationResponseDto> {
+    const publicBaseUrl = this.configService.get<string>('PUBLIC_BASE_URL');
+    if (!publicBaseUrl) {
+      throw new ServiceUnavailableException({
+        message:
+          'PUBLIC_BASE_URL이 설정되지 않아 인증 메일을 보낼 수 없습니다.',
+      });
+    }
+
     // Look up the member
     const member: Member = await this.memberRepository.findOne({
       select: { id: true },
@@ -133,12 +143,11 @@ export class MemberService {
     const emailResult: EmailResultDto = await this.emailService.sendEmail(
       sendValidationDto.email,
       '[SAMPLE] Confirm your email address',
-      `Hi ${sendValidationDto.username},<br/>` +
-        'We just need to verify your email address before you can access {SAMPLE_DOMAIN}<br/><br/>' +
-        `Verify your email address ${request.protocol}://${request.get(
-          'Host',
-        )}/members/validate/${validationToken}<br/><br/>` +
-        'Thanks!',
+      buildValidationEmail(
+        sendValidationDto.username,
+        publicBaseUrl,
+        validationToken,
+      ),
     );
 
     // Build the DTO used for the Swagger docs
@@ -219,23 +228,16 @@ export class MemberService {
       withDeleted: false,
     });
 
-    // Throw an error if the member does not exist
-    if (member === null) {
-      throw new BadRequestException({
-        message: '멤버가 존재하지 않습니다.',
-      });
-    }
-
     // Compare the given password against the stored one
     const passwordCompare: boolean = await bcrypt.compare(
       loginDto.password,
-      member.password,
+      member?.password ?? UNKNOWN_MEMBER_PASSWORD_HASH,
     );
 
-    // Throw an error if the password does not match
-    if (!passwordCompare) {
+    // The same response for an unknown ID and a wrong password
+    if (!member || !passwordCompare) {
       throw new UnauthorizedException({
-        message: '패스워드가 일치하지 않습니다.',
+        message: '아이디 또는 패스워드가 일치하지 않습니다.',
       });
     }
 
@@ -254,15 +256,18 @@ export class MemberService {
 
     // Refresh token used to reissue the access token
     const refreshToken = await this.jwtService.signAsync(
-      {},
+      { jti: randomUUID() },
       {
         secret: this.configService.get('JWT_REFRESH_SECRET_KEY'),
         expiresIn: this.configService.get('JWT_REFRESH_EXPIRES_TIME'),
       },
     );
 
-    // Update the stored refresh token
-    await this.memberRepository.update({ id: member.id }, { refreshToken });
+    // Update the stored refresh token digest
+    await this.memberRepository.update(
+      { id: member.id },
+      { refreshToken: hashRefreshToken(refreshToken) },
+    );
 
     // Build the DTO used for the Swagger docs
     const loginResponseDto: LoginResponseDto = new LoginResponseDto();
@@ -304,7 +309,9 @@ export class MemberService {
     }
 
     // If the refresh token does not match
-    if (member.refreshToken !== memberRefreshDto.refreshToken) {
+    if (
+      member.refreshToken !== hashRefreshToken(memberRefreshDto.refreshToken)
+    ) {
       throw new UnauthorizedException({
         message: '리프레시 토큰이 일치하지 않습니다.',
       });
@@ -312,7 +319,7 @@ export class MemberService {
 
     // Refresh token payload
     const refreshTokenPayload = await this.jwtService.verifyAsync(
-      member.refreshToken,
+      memberRefreshDto.refreshToken,
       {
         secret: this.configService.get<string>('JWT_REFRESH_SECRET_KEY'),
       },

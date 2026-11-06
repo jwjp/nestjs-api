@@ -54,29 +54,9 @@ export class HealthCheckService {
         this.configService.get<string>('SLACK_TOKEN'),
       );
 
-      // Remove undefined entries after building the object
-      const errMessage: object = JSON.parse(
-        JSON.stringify({
-          http: err.response?.error?.http
-            ? '현재 도메인의 연결 상태가 불안정합니다.'
-            : undefined,
-          database: err.response?.error?.database
-            ? '데이터베이스의 연결 상태가 불안정합니다.'
-            : undefined,
-          storage: err.response?.error?.storage
-            ? '디스크 용량이 설정 된 임계값에 도달했습니다.'
-            : undefined,
-          memory: err.response?.error?.memory
-            ? '메모리 용량이 설정 된 임계값에 도달했습니다.'
-            : undefined,
-        }),
-      );
-
+      // This endpoint is public, so the failing component only goes to Slack
       throw new ServiceUnavailableException({
-        message:
-          Object.keys(errMessage).length > 0
-            ? Object.values(errMessage)
-            : err.message,
+        message: '서비스 상태가 불안정합니다.',
         stack: err.stack,
       });
     }

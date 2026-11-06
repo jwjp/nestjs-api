@@ -1,5 +1,5 @@
 import { Controller, Get, Inject, Logger, LoggerService } from '@nestjs/common';
-import { Public } from '../auth/auth.decorator';
+import { Public, Roles } from '../auth/auth.decorator';
 import { CronService } from './cron.service';
 import { Cron } from '@nestjs/schedule';
 import { HealthCheck } from '@nestjs/terminus';
@@ -21,8 +21,7 @@ export class CronController {
    *
    * @return {object}
    */
-  @ApiOperation({ security: [] })
-  @Public()
+  @Roles('admin')
   @Get()
   getCrons(): object {
     return Object.assign(
