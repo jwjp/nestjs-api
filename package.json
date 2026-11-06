@@ -85,6 +85,7 @@
     "body-parser": "^2.4.0",
     "fast-uri": "^3.1.9",
     "follow-redirects": "^1.16.2",
+    "minimatch@10": "11.0.5",
     "multer": "^2.5.0",
     "proxy-addr": "^2.0.8"
   },
